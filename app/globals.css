@@ -205,19 +205,54 @@
   html {
     @apply font-sans scroll-smooth;
   }
+  
+  /* Disable double-tap zoom delay on mobile devices for instant responsiveness */
+  button, 
+  a, 
+  input, 
+  select,
+  [role="button"] {
+    touch-action: manipulation;
+  }
 }
 
 /* Glassmorphism & Custom Aesthetic Utility Classes */
 .bg-glass {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  /* No nested backdrop-blur filters for extreme mobile compositor speed (nested filters cause heavy lag) */
+  background: rgba(255, 255, 255, 0.68);
 }
 
 .dark .bg-glass {
-  background: rgba(28, 13, 17, 0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(24, 11, 15, 0.88);
+}
+
+/* Optimized CSS animations for hardware acceleration (60fps) */
+@keyframes dynamic-float-blur {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, var(--y-blur, -40px), 0) scale(1.08);
+  }
+}
+
+.animate-float-blur {
+  will-change: transform;
+  animation: dynamic-float-blur var(--blur-duration, 15s) ease-in-out var(--blur-delay, 0s) infinite;
+}
+
+@keyframes dynamic-float-heart {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(0.8) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(var(--x-float, 20px), var(--y-float, -100px), 0) scale(1.15) rotate(10deg);
+  }
+}
+
+.animate-float-heart {
+  will-change: transform;
+  animation: dynamic-float-heart var(--float-duration, 10s) ease-in-out var(--float-delay, 0s) infinite;
 }
 
 .border-glass {

@@ -253,14 +253,14 @@ export default function Home() {
   const [clickHearts, setClickHearts] = useState<{ id: number; x: number; y: number; size: number; delay: number }[]>([])
 
   const handleGlobalClick = (e: React.MouseEvent) => {
-    const newHearts = Array.from({ length: 4 }).map((_, i) => ({
+    const newHearts = Array.from({ length: 2 }).map((_, i) => ({
       id: Date.now() + Math.random(),
       x: e.clientX,
       y: e.clientY,
-      size: Math.random() * 12 + 10,
-      delay: i * 0.04,
+      size: Math.random() * 10 + 10,
+      delay: i * 0.03,
     }))
-    setClickHearts((prev) => [...prev, ...newHearts].slice(-30))
+    setClickHearts((prev) => [...prev, ...newHearts].slice(-12))
   }
 
   // Success Toast state
@@ -570,60 +570,45 @@ export default function Home() {
       {/* Ambient background particles */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {bgParticles.map((particle, idx) => (
-          <motion.div
+          <div
             key={`bg-particle-${idx}`}
-            className="absolute rounded-full bg-primary/10 dark:bg-primary/5 blur-2xl"
+            className="absolute rounded-full bg-primary/10 dark:bg-primary/5 blur-2xl animate-float-blur"
             style={{
               width: particle.width,
               height: particle.height,
               left: particle.left,
               top: particle.top,
-            }}
-            animate={{
-              y: [0, particle.yOffset, 0],
-              scale: [1, 1.15, 1],
-            }}
-            transition={{
-              duration: particle.duration,
-              delay: particle.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
+              ["--y-blur" as any]: `${particle.yOffset}px`,
+              ["--blur-duration" as any]: `${particle.duration}s`,
+              ["--blur-delay" as any]: `${particle.delay}s`,
             }}
           />
         ))}
         
         {/* Floating Heart icons */}
         {floatingHeartParticles.map((heart, idx) => (
-          <motion.div
+          <div
             key={`heart-${idx}`}
-            className="absolute text-primary/15 dark:text-primary/10"
+            className="absolute text-primary/15 dark:text-primary/10 animate-float-heart"
             style={{
               left: heart.left,
               top: `${80 - idx * 8}%`,
-            }}
-            animate={{
-              y: [0, heart.yOffset, 0],
-              x: [0, heart.xOffset, 0],
-              scale: [0.8, 1.25, 0.8],
-              rotate: [0, 20, -20, 0],
-            }}
-            transition={{
-              duration: heart.duration,
-              delay: heart.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
+              ["--x-float" as any]: `${heart.xOffset}px`,
+              ["--y-float" as any]: `${heart.yOffset}px`,
+              ["--float-duration" as any]: `${heart.duration}s`,
+              ["--float-delay" as any]: `${heart.delay}s`,
             }}
           >
             <Heart size={heart.size} fill="currentColor" />
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Main Glass Mock-Phone Container */}
-      <div className="relative z-10 w-full max-w-[420px] aspect-[9/19] max-h-[850px] min-h-[660px] flex flex-col bg-white/40 dark:bg-black/40 border border-white/40 dark:border-white/10 rounded-[2.5rem] shadow-romantic overflow-hidden backdrop-blur-2xl">
+      <div className="relative z-10 w-full max-w-[420px] aspect-[9/19] max-h-[850px] min-h-[660px] flex flex-col bg-white/60 dark:bg-black/70 border border-white/30 dark:border-white/10 rounded-[2.5rem] shadow-romantic overflow-hidden backdrop-blur-xl">
         
         {/* Phone Notch/Header */}
-        <div className="flex justify-between items-center px-6 pt-5 pb-3 bg-white/10 dark:bg-black/10 backdrop-blur-md z-30 select-none">
+        <div className="flex justify-between items-center px-6 pt-5 pb-3 bg-white/5 dark:bg-black/20 border-b border-foreground/5 z-30 select-none">
           <div className="flex items-center gap-1.5">
             <Flame className="text-primary animate-pulse size-5 fill-primary" />
             <span className="font-bold tracking-tight text-sm text-gradient-romantic">DateSparks</span>
@@ -656,7 +641,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="text-center py-1.5 px-3 rounded-full bg-white/25 dark:bg-black/35 border border-white/20 dark:border-white/5 backdrop-blur-md flex items-center justify-center gap-1.5 text-[10px] font-bold text-primary shadow-sm"
+                    className="text-center py-1.5 px-3 rounded-full bg-white/80 dark:bg-black/90 border border-white/20 dark:border-white/5 flex items-center justify-center gap-1.5 text-[10px] font-bold text-primary shadow-sm"
                   >
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
@@ -684,6 +669,7 @@ export default function Home() {
                   initial="enter"
                   animate="center"
                   exit="exit"
+                  style={{ willChange: "transform, opacity" }}
                   className="flex-1 flex flex-col"
                 >
                   
@@ -941,6 +927,7 @@ export default function Home() {
                   initial="enter"
                   animate="center"
                   exit="exit"
+                  style={{ willChange: "transform, opacity" }}
                   className="flex flex-col gap-6 py-2"
                 >
                   <div className="text-center">
@@ -1183,7 +1170,7 @@ export default function Home() {
         </div>
 
         {/* Bottom Tab Navigation Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/20 dark:bg-black/20 border-t border-white/20 dark:border-white/5 backdrop-blur-xl flex items-center justify-around px-6 z-30 select-none">
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-black/95 border-t border-white/20 dark:border-white/5 flex items-center justify-around px-6 z-30 select-none">
           <button
             onClick={() => {
               playSoftClick()
@@ -1219,7 +1206,8 @@ export default function Home() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 bg-white/75 dark:bg-black/75 border border-primary/20 backdrop-blur-xl shadow-romantic-glow rounded-full py-2 px-4 text-[10px] font-black uppercase tracking-wider text-primary flex items-center justify-center gap-1.5 select-none"
+              style={{ willChange: "transform, opacity" }}
+              className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-black/95 border border-primary/20 shadow-romantic-glow rounded-full py-2 px-4 text-[10px] font-black uppercase tracking-wider text-primary flex items-center justify-center gap-1.5 select-none"
             >
               <Sparkles className="size-3.5 fill-primary text-primary animate-sparkle" />
               <span>{toastMessage}</span>
@@ -1295,6 +1283,7 @@ export default function Home() {
               top: 0,
               marginTop: -heart.size / 2,
               marginLeft: -heart.size / 2,
+              willChange: "transform, opacity",
             }}
           >
             <Heart size={heart.size} fill="currentColor" />
