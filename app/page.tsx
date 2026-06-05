@@ -42,32 +42,55 @@ const tooltips = [
   "no is disabled 🚫",
 ]
 
-// Custom directional swiping variants for Framer Motion
+// Custom directional swiping variants for Framer Motion (speed optimized to reduce INP delay)
 const slideVariants = {
   enter: (direction: "forward" | "backward") => ({
     opacity: 0,
-    x: direction === "forward" ? 60 : -60,
-    scale: 0.97,
+    x: direction === "forward" ? 40 : -40,
+    scale: 0.98,
   }),
   center: {
     opacity: 1,
     x: 0,
     scale: 1,
     transition: {
-      duration: 0.45,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number], // premium custom cubic-bezier
+      duration: 0.22,
+      ease: [0.25, 1, 0.5, 1] as [number, number, number, number], // Snappy easeOut
     },
   },
   exit: (direction: "forward" | "backward") => ({
     opacity: 0,
-    x: direction === "forward" ? -60 : 60,
-    scale: 0.97,
+    x: direction === "forward" ? -40 : 40,
+    scale: 0.98,
     transition: {
-      duration: 0.35,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+      duration: 0.15,
+      ease: [0.25, 1, 0.5, 1] as [number, number, number, number],
     },
   }),
 }
+
+// Pre-configured static arrays to prevent CPU thrashing/re-renders caused by inline Math.random()
+const bgParticles = [
+  { width: 220, height: 250, left: "10%", top: "15%", duration: 15, delay: 0, yOffset: -50 },
+  { width: 180, height: 210, left: "75%", top: "45%", duration: 18, delay: 2, yOffset: -30 },
+  { width: 280, height: 240, left: "45%", top: "80%", duration: 12, delay: 1, yOffset: -60 },
+  { width: 200, height: 200, left: "20%", top: "60%", duration: 14, delay: 3, yOffset: -40 },
+  { width: 140, height: 160, left: "85%", top: "10%", duration: 16, delay: 4, yOffset: -35 },
+  { width: 260, height: 230, left: "55%", top: "30%", duration: 20, delay: 5, yOffset: -45 },
+  { width: 180, height: 180, left: "5%", top: "90%", duration: 13, delay: 2, yOffset: -25 },
+  { width: 210, height: 230, left: "65%", top: "75%", duration: 17, delay: 0, yOffset: -55 }
+]
+
+const floatingHeartParticles = [
+  { left: "12%", delay: 0, size: 24, duration: 9, yOffset: -120, xOffset: 20 },
+  { left: "24%", delay: 1.5, size: 18, duration: 11, yOffset: -140, xOffset: -30 },
+  { left: "36%", delay: 3, size: 28, duration: 8, yOffset: -100, xOffset: 40 },
+  { left: "48%", delay: 0.5, size: 16, duration: 10, yOffset: -130, xOffset: -20 },
+  { left: "60%", delay: 2, size: 22, duration: 12, yOffset: -110, xOffset: 30 },
+  { left: "72%", delay: 4, size: 20, duration: 7, yOffset: -150, xOffset: -10 },
+  { left: "84%", delay: 1, size: 26, duration: 11, yOffset: -125, xOffset: 25 },
+  { left: "90%", delay: 2.5, size: 14, duration: 9, yOffset: -135, xOffset: -15 }
+]
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"match" | "uikit">("match")
@@ -170,22 +193,23 @@ export default function Home() {
       
       {/* Ambient background particles */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {bgParticles.map((particle, idx) => (
           <motion.div
-            key={i}
+            key={`bg-particle-${idx}`}
             className="absolute rounded-full bg-primary/10 dark:bg-primary/5 blur-2xl"
             style={{
-              width: Math.random() * 300 + 100,
-              height: Math.random() * 300 + 100,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: particle.width,
+              height: particle.height,
+              left: particle.left,
+              top: particle.top,
             }}
             animate={{
-              y: [0, Math.random() * -60 - 20, 0],
+              y: [0, particle.yOffset, 0],
               scale: [1, 1.15, 1],
             }}
             transition={{
-              duration: Math.random() * 12 + 10,
+              duration: particle.duration,
+              delay: particle.delay,
               repeat: Infinity,
               ease: "easeInOut",
             }}
@@ -193,27 +217,28 @@ export default function Home() {
         ))}
         
         {/* Floating Heart icons */}
-        {Array.from({ length: 8 }).map((_, i) => (
+        {floatingHeartParticles.map((heart, idx) => (
           <motion.div
-            key={`heart-${i}`}
+            key={`heart-${idx}`}
             className="absolute text-primary/15 dark:text-primary/10"
             style={{
-              left: `${10 + i * 12}%`,
-              top: `${85 - i * 8}%`,
+              left: heart.left,
+              top: `${80 - idx * 8}%`,
             }}
             animate={{
-              y: [0, -140, 0],
-              x: [0, Math.sin(i) * 40, 0],
+              y: [0, heart.yOffset, 0],
+              x: [0, heart.xOffset, 0],
               scale: [0.8, 1.25, 0.8],
               rotate: [0, 20, -20, 0],
             }}
             transition={{
-              duration: 9 + i * 2,
+              duration: heart.duration,
+              delay: heart.delay,
               repeat: Infinity,
               ease: "easeInOut",
             }}
           >
-            <Heart size={Math.random() * 26 + 14} fill="currentColor" />
+            <Heart size={heart.size} fill="currentColor" />
           </motion.div>
         ))}
       </div>
