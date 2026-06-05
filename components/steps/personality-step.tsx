@@ -118,6 +118,26 @@ const archetypes: Record<string, Archetype> = {
   },
 }
 
+function Typewriter({ text, speed = 25 }: { text: string; speed?: number }) {
+  const [displayedText, setDisplayedText] = useState("")
+
+  useEffect(() => {
+    let index = 0
+    setDisplayedText("")
+    const interval = setInterval(() => {
+      setDisplayedText((prev) => prev + text.charAt(index))
+      index++
+      if (index >= text.length) {
+        clearInterval(interval)
+      }
+    }, speed)
+
+    return () => clearInterval(interval)
+  }, [text, speed])
+
+  return <span>{displayedText}</span>
+}
+
 export function PersonalityStep({ restaurant, food, time, onNext, onBack }: PersonalityStepProps) {
   const [archetype, setArchetype] = useState<Archetype>(archetypes.classic)
   const [loading, setLoading] = useState(true)
@@ -147,11 +167,11 @@ export function PersonalityStep({ restaurant, food, time, onNext, onBack }: Pers
     if (!loading) return
     const interval = setInterval(() => {
       setStatusIdx((prev) => (prev + 1) % statusMessages.length)
-    }, 280)
+    }, 1100)
 
     const timer = setTimeout(() => {
       setLoading(false)
-    }, 2200)
+    }, 3600)
 
     return () => {
       clearInterval(interval)
@@ -183,9 +203,9 @@ export function PersonalityStep({ restaurant, food, time, onNext, onBack }: Pers
         <div className="text-center w-full max-w-xs">
           <div className="p-3.5 rounded-2xl bg-white/30 dark:bg-black/30 border-glass shadow-sm flex flex-col gap-1">
             <span className="text-[9px] font-extrabold uppercase tracking-widest text-primary block">AI Love Analyzer</span>
-            <p className="font-bold text-xs text-foreground min-h-[32px] flex items-center justify-center transition-all duration-300">
-              {statusMessages[statusIdx]}
-            </p>
+            <div className="font-bold text-xs text-foreground min-h-[32px] flex items-center justify-center text-center">
+              <Typewriter text={statusMessages[statusIdx]} />
+            </div>
           </div>
           <p className="text-[9px] text-muted-foreground mt-3 italic">
             "pretending i'm calm rn 😭"

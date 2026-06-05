@@ -74,3 +74,102 @@ export async function submitProposal(data: SubmissionData) {
     return { success: false, error: err?.message || "Something went wrong. Please try again! 😭" }
   }
 }
+
+export async function logAnalyticsEvent(eventType: "view" | "start_flow" | "submit", sessionId: string) {
+  if (!sessionId) return { success: false, error: "Invalid session ID" }
+
+  try {
+    const { error } = await supabase
+      .from("analytics_events")
+      .insert([
+        {
+          event_type: eventType,
+          session_id: sessionId,
+        },
+      ])
+
+    if (error) {
+      // PostgREST unique violation code is 23505.
+      if (error.code === "23505") {
+        return { success: true }
+      }
+      console.error("Supabase Analytics insertion failed:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error("Server Action Analytics Exception:", err)
+    return { success: false, error: err?.message || "Internal error logging event" }
+  }
+}
+
+export interface AnalyticsStats {
+  totalViews: number
+  totalStarts: number
+  totalSubmits: number
+  conversionRate: number
+  dailyStats: {
+    date: string
+    views: number
+    starts: number
+    submits: number
+  }[]
+}
+
+export async function getAnalyticsStats() {
+  try {
+    const { data, error } = await supabase
+      .from("analytics_events")
+      .select("event_type, created_at")
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("Supabase query failed for stats:", error)
+      return { success: false, error: error.message }
+    }
+
+    let totalViews = 0
+    let totalStarts = 0
+    let totalSubmits = 0
+    const dailyMap: Record<string, { views: number; starts: number; submits: number }> = {}
+
+    data?.forEach((row) => {
+      const type = row.event_type
+      if (type === "view") totalViews++
+      else if (type === "start_flow") totalStarts++
+      else if (type === "submit") totalSubmits++
+
+      const dateStr = new Date(row.created_at).toISOString().split("T")[0]
+      if (!dailyMap[dateStr]) {
+        dailyMap[dateStr] = { views: 0, starts: 0, submits: 0 }
+      }
+
+      if (type === "view") dailyMap[dateStr].views++
+      else if (type === "start_flow") dailyMap[dateStr].starts++
+      else if (type === "submit") dailyMap[dateStr].submits++
+    })
+
+    const conversionRate = totalStarts > 0 ? (totalSubmits / totalStarts) * 100 : 0
+
+    const dailyStats = Object.entries(dailyMap).map(([date, counts]) => ({
+      date,
+      ...counts,
+    }))
+
+    return {
+      success: true,
+      stats: {
+        totalViews,
+        totalStarts,
+        totalSubmits,
+        conversionRate: parseFloat(conversionRate.toFixed(2)),
+        dailyStats,
+      } as AnalyticsStats,
+    }
+  } catch (err: any) {
+    console.error("Server Action getAnalyticsStats Exception:", err)
+    return { success: false, error: err?.message || "Internal error compiling statistics" }
+  }
+}
+

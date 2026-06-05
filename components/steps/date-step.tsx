@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { playHoverPop } from "@/lib/audio"
 
 interface DateStepProps {
   selectedValue: string
@@ -86,6 +87,7 @@ export function DateStep({ selectedValue, onChange, onNext, onBack }: DateStepPr
                 <button
                   key={i}
                   onClick={() => handleDateSelect(dayNum)}
+                  onMouseEnter={playHoverPop}
                   className={`aspect-square text-xs rounded-xl flex items-center justify-center transition-all duration-300 ${getDayDisplayClass(
                     dayNum
                   )}`}

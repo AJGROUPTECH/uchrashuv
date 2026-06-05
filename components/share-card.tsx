@@ -116,7 +116,7 @@ export const ShareCard = React.forwardRef<HTMLDivElement, ShareCardProps>(
           </div>
 
           {/* Archetype mini-card */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-[oklch(0.72_0.18_350/10%)] border border-primary/20 text-center relative overflow-hidden">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-[#ff709b]/10 border border-primary/20 text-center relative overflow-hidden">
             <div className="absolute -right-4 -bottom-4 opacity-15 text-primary shrink-0">
               <Award size={64} />
             </div>

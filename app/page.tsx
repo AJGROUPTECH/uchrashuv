@@ -15,7 +15,9 @@ import {
   Utensils,
   Smile,
   Send,
-  RefreshCw
+  RefreshCw,
+  Volume2,
+  VolumeX
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,8 +30,21 @@ import { RestaurantStep } from "@/components/steps/restaurant-step"
 import { FoodStep } from "@/components/steps/food-step"
 import { PersonalityStep } from "@/components/steps/personality-step"
 import { SummaryStep } from "@/components/steps/summary-step"
-import { submitProposal } from "@/app/actions"
+import { submitProposal, logAnalyticsEvent, getAnalyticsStats, type AnalyticsStats } from "@/app/actions"
+import { getSessionId } from "@/lib/analytics"
+import { getRandomRomanticText } from "@/lib/romantic-texts"
 import { ShareCard } from "@/components/share-card"
+import { 
+  initAudio, 
+  setMutedState, 
+  getMutedState, 
+  playSoftClick, 
+  playHoverPop, 
+  playSwoosh, 
+  playSparkle, 
+  playNoEscape, 
+  playCameraShutter 
+} from "@/lib/audio"
 
 const tooltips = [
   "nice try 😭",
@@ -94,9 +109,114 @@ const floatingHeartParticles = [
   { left: "90%", delay: 2.5, size: 14, duration: 9, yOffset: -135, xOffset: -15 }
 ]
 
+function ConfettiExplosion() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let animationFrameId: number
+    
+    // Resize
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    const colors = ["#ff4b82", "#ff85a1", "#fbb6ce", "#fbd38d", "#f6ad55"]
+    const particles = Array.from({ length: 85 }).map(() => ({
+      x: canvas.width / 2,
+      y: canvas.height * 0.42, // Center of phone mockup
+      vx: (Math.random() - 0.5) * 14,
+      vy: (Math.random() - 0.75) * 16 - 6,
+      size: Math.random() * 7 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 12,
+      opacity: 1,
+    }))
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      let active = false
+      particles.forEach((p) => {
+        if (p.opacity <= 0) return
+        active = true
+
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate((p.rotation * Math.PI) / 180)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = p.opacity
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
+        ctx.restore()
+
+        // Physics
+        p.x += p.vx
+        p.y += p.vy
+        p.vy += 0.35 // Gravity
+        p.vx *= 0.985 // Friction
+        p.rotation += p.rotationSpeed
+        p.opacity -= 0.012 // Fade out
+      })
+
+      if (active) {
+        animationFrameId = requestAnimationFrame(render)
+      }
+    }
+
+    render()
+
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-50 w-full h-full"
+    />
+  )
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"match" | "uikit">("match")
   const [isDark, setIsDark] = useState(false)
+  const [isAudioMuted, setIsAudioMuted] = useState(false)
+  
+  // Initialize audio preference & log view event & init thought pool text
+  useEffect(() => {
+    initAudio()
+    setIsAudioMuted(getMutedState())
+    setFloatingText(getRandomRomanticText())
+
+    // Log website view once per session
+    const logViewEvent = async () => {
+      if (typeof window === "undefined") return
+      const sessId = getSessionId()
+      const hasLoggedView = sessionStorage.getItem("date-sparks-logged-view")
+      if (!hasLoggedView) {
+        const result = await logAnalyticsEvent("view", sessId)
+        if (result.success) {
+          sessionStorage.setItem("date-sparks-logged-view", "true")
+        }
+      }
+    }
+    logViewEvent()
+  }, [])
+
+  const toggleMute = () => {
+    const nextMuted = !isAudioMuted
+    setIsAudioMuted(nextMuted)
+    setMutedState(nextMuted)
+    // Small feedback chirp right after unmuting
+    if (!nextMuted) {
+      setTimeout(() => playSoftClick(), 60)
+    }
+  }
   
   // Navigation flow state: 0 = proposal, 1 = date, 2 = time, 3 = spot, 4 = food, 5 = personality, 6 = summary, 7 = success
   const [flowStep, setFlowStep] = useState(0)
@@ -119,6 +239,77 @@ export default function Home() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
+
+  // Dynamic romantic thought system state
+  const [floatingText, setFloatingText] = useState("")
+
+  // Admin Analytics Dashboard state
+  const [adminStats, setAdminStats] = useState<AnalyticsStats | null>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [statsError, setStatsError] = useState("")
+
+
+  // Click heart explosion particles state & handler
+  const [clickHearts, setClickHearts] = useState<{ id: number; x: number; y: number; size: number; delay: number }[]>([])
+
+  const handleGlobalClick = (e: React.MouseEvent) => {
+    const newHearts = Array.from({ length: 4 }).map((_, i) => ({
+      id: Date.now() + Math.random(),
+      x: e.clientX,
+      y: e.clientY,
+      size: Math.random() * 12 + 10,
+      delay: i * 0.04,
+    }))
+    setClickHearts((prev) => [...prev, ...newHearts].slice(-30))
+  }
+
+  // Success Toast state
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [showToast, setShowToast] = useState(false)
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const triggerSuccessToast = () => {
+    const messages = [
+      "✨ ready for the story post",
+      "📸 copied to camera roll energy",
+      "👀 story post pending..."
+    ]
+    const randomMsg = messages[Math.floor(Math.random() * messages.length)]
+    
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    
+    setToastMessage(randomMsg)
+    setShowToast(true)
+    
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowToast(false)
+    }, 3000)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    }
+  }, [])
+
+  // Successful selections sound moments
+  useEffect(() => {
+    if (selectedDate) playHoverPop()
+  }, [selectedDate])
+
+  useEffect(() => {
+    if (selectedTime) playHoverPop()
+  }, [selectedTime])
+
+  useEffect(() => {
+    if (selectedRestaurant) playHoverPop()
+  }, [selectedRestaurant])
+
+  useEffect(() => {
+    if (selectedFood) playHoverPop()
+  }, [selectedFood])
 
   // Save Vibe Card export states
   const shareCardRef = useRef<HTMLDivElement>(null)
@@ -150,6 +341,8 @@ export default function Home() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      playCameraShutter()
+      triggerSuccessToast()
     } catch (err) {
       console.error("Failed to generate card image:", err)
       alert("Oops! Failed to save image. Please try again! 😭")
@@ -183,6 +376,8 @@ export default function Home() {
             [blob.type]: blob
           })
           await navigator.clipboard.write([clipboardItem])
+          playCameraShutter()
+          triggerSuccessToast()
           setCopyFeedback(true)
           setTimeout(() => setCopyFeedback(false), 2000)
         } catch (clipErr) {
@@ -199,6 +394,7 @@ export default function Home() {
   }
 
   const handleShareTelegram = () => {
+    playSoftClick()
     const day = selectedDate ? selectedDate.split("-")[2] : "12"
     const text = `Check out our DateSparks Vibe Card! 📸 Locked in for June ${day} at ${selectedTime || "7:00 PM"}. Spot: ${selectedRestaurant || "ARROWS & SPARROWS"}. Food: ${selectedFood || "Truffle Pizza"}. Archetype: ${personalityResult || "Fine Dining Romanticist 🌹"} 💌`
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`
@@ -221,6 +417,10 @@ export default function Home() {
       })
       
       if (result.success) {
+        const sessId = getSessionId()
+        await logAnalyticsEvent("submit", sessId)
+        localStorage.setItem("date-sparks-last-submit", Date.now().toString())
+        playSparkle()
         navigateTo(7) // Go to success step!
       } else {
         setSubmitError(result.error || "Failed to submit proposal.")
@@ -242,7 +442,45 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [])
 
+  // Rotate thought banner messages on step changes (Feature 3)
+  useEffect(() => {
+    if (flowStep > 0) {
+      setFloatingText((prev) => getRandomRomanticText(prev))
+    }
+  }, [flowStep])
+
+  // Fetch admin dashboard stats when activeTab is 'uikit' (Feature 1)
+  const fetchStats = async () => {
+    setIsLoadingStats(true)
+    setStatsError("")
+    try {
+      const res = await getAnalyticsStats()
+      if (res.success && res.stats) {
+        setAdminStats(res.stats)
+      } else {
+        setStatsError(res.error || "Failed to load statistics")
+      }
+    } catch (err) {
+      setStatsError("Failed to fetch database analytics stats")
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "uikit") {
+      fetchStats()
+    }
+  }, [activeTab])
+
   const getPlayfulTimeMessage = () => {
+    if (flowStep === 1) return "lowkey hoping you pick a weekend 🤭"
+    if (flowStep === 2) return "lowkey hoping you pick dinner 😌"
+    if (flowStep === 3) return "this is getting suspiciously cute"
+    if (flowStep === 4) return "okay wait this vibe kinda works"
+    if (flowStep === 5) return "calculating compatibility vibes... 💘"
+    if (flowStep === 6) return "almost official. lock it in! 🔐"
+
     if (secondsElapsed < 10) return "pretending i'm calm rn 😭"
     if (secondsElapsed < 25) return `you've been here for ${secondsElapsed} seconds already 😌`
     if (secondsElapsed < 40) return "lowkey hoping you pick June or Yakamoz 🌸"
@@ -258,6 +496,7 @@ export default function Home() {
   }, [])
 
   const toggleTheme = () => {
+    playSoftClick()
     const nextDark = !isDark
     setIsDark(nextDark)
     if (nextDark) {
@@ -269,6 +508,7 @@ export default function Home() {
 
   // Escaping "No" button math (relative to container center)
   const handleNoHover = () => {
+    playNoEscape()
     const rangeX = 125 
     const rangeY = 110 
     
@@ -287,11 +527,27 @@ export default function Home() {
   }
 
   const navigateTo = (nextStep: number) => {
+    playSwoosh()
     setDirection(nextStep > flowStep ? "forward" : "backward")
     setFlowStep(nextStep)
   }
 
+  const handleYesClick = async () => {
+    navigateTo(1)
+    if (typeof window !== "undefined") {
+      const sessId = getSessionId()
+      const hasLoggedStart = sessionStorage.getItem("date-sparks-logged-start")
+      if (!hasLoggedStart) {
+        const result = await logAnalyticsEvent("start_flow", sessId)
+        if (result.success) {
+          sessionStorage.setItem("date-sparks-logged-start", "true")
+        }
+      }
+    }
+  }
+
   const resetAll = () => {
+    playSoftClick()
     setDirection("backward")
     setFlowStep(0)
     setNoCount(0)
@@ -306,7 +562,10 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden bg-romantic-mesh transition-colors duration-500">
+    <div 
+      onClick={handleGlobalClick}
+      className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden bg-romantic-mesh transition-colors duration-500 cursor-default"
+    >
       
       {/* Ambient background particles */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -386,14 +645,27 @@ export default function Home() {
         {/* Content Wrapper */}
         <div className="flex-1 overflow-y-auto px-4 py-4 z-20 flex flex-col pb-20 scrollbar-none">
           
-          {/* Playful Floating Thought Banner */}
+          {/* Playful Floating Thought Banner (Feature 3) */}
           {activeTab === "match" && flowStep <= 6 && (
-            <div className="text-center py-1.5 px-3 rounded-full bg-white/20 dark:bg-black/25 border border-white/20 dark:border-white/5 backdrop-blur-md mb-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-primary shadow-sm select-none">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
-              </span>
-              <span>{getPlayfulTimeMessage()}</span>
+            <div className="h-8 flex items-center justify-center mb-2 select-none overflow-hidden">
+              <AnimatePresence mode="wait">
+                {floatingText && (
+                  <motion.div
+                    key={floatingText}
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="text-center py-1.5 px-3 rounded-full bg-white/25 dark:bg-black/35 border border-white/20 dark:border-white/5 backdrop-blur-md flex items-center justify-center gap-1.5 text-[10px] font-bold text-primary shadow-sm"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
+                    </span>
+                    <span>{floatingText}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
           
@@ -452,7 +724,7 @@ export default function Home() {
                                 variant="romantic"
                                 size="lg"
                                 className="shadow-romantic-glow font-bold pr-5 pl-5 select-none animate-heartbeat"
-                                onClick={() => navigateTo(1)}
+                                onClick={handleYesClick}
                               >
                                 Yes 💖
                               </Button>
@@ -570,6 +842,7 @@ export default function Home() {
                   {/* STEP 7: SUCCESS CELEBRATION */}
                   {flowStep === 7 && (
                     <div className="w-full flex-1 flex flex-col justify-center min-h-[440px]">
+                      <ConfettiExplosion />
                       <Card variant="glass" className="w-full flex-1 flex flex-col justify-between py-6 text-center border-primary/30 shadow-romantic-glow">
                         <CardHeader className="pb-0">
                           <div className="mx-auto size-20 bg-primary/20 rounded-full flex items-center justify-center mb-4 relative">
@@ -675,6 +948,112 @@ export default function Home() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Premium mobile-first aesthetic design tokens.
                     </p>
+                  </div>
+
+                  {/* Viral Analytics Dashboard Section (Feature 1) */}
+                  <div className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-primary/70 flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 animate-sparkle" /> Viral Analytics
+                      </h3>
+                      <Button
+                        variant="glass"
+                        size="icon-xs"
+                        disabled={isLoadingStats}
+                        onClick={fetchStats}
+                        className="rounded-full size-7 hover:scale-110 active:scale-95 transition-all text-primary"
+                        aria-label="Refresh Statistics"
+                      >
+                        <RefreshCw className={`size-3.5 ${isLoadingStats ? "animate-spin text-primary" : ""}`} />
+                      </Button>
+                    </div>
+
+                    <Card variant="glass" className="border-primary/20 shadow-romantic-glow">
+                      <CardContent className="p-4 flex flex-col gap-4">
+                        {isLoadingStats ? (
+                          <div className="flex flex-col gap-3 py-4 text-center items-center justify-center">
+                            <span className="relative flex h-3 w-3">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                            </span>
+                            <span className="text-xs font-bold text-muted-foreground animate-pulse">
+                              calculating dashboard metrics... 📊
+                            </span>
+                          </div>
+                        ) : statsError ? (
+                          <div className="text-center py-4 text-xs font-semibold text-rose-500">
+                            ⚠️ {statsError}
+                          </div>
+                        ) : adminStats ? (
+                          <>
+                            {/* Grid metrics */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="p-2 rounded-xl bg-white/10 dark:bg-black/20 border border-foreground/5 text-center flex flex-col gap-0.5">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Views</span>
+                                <span className="text-sm font-black text-foreground">{adminStats.totalViews}</span>
+                              </div>
+                              <div className="p-2 rounded-xl bg-white/10 dark:bg-black/20 border border-foreground/5 text-center flex flex-col gap-0.5">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Starts</span>
+                                <span className="text-sm font-black text-primary">{adminStats.totalStarts}</span>
+                              </div>
+                              <div className="p-2 rounded-xl bg-white/10 dark:bg-black/20 border border-foreground/5 text-center flex flex-col gap-0.5">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Submits</span>
+                                <span className="text-sm font-black text-green-500">{adminStats.totalSubmits}</span>
+                              </div>
+                            </div>
+
+                            {/* Conversion rate bar */}
+                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex flex-col gap-1.5">
+                              <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                                <span>Conversion Rate</span>
+                                <span className="font-black text-xs">{adminStats.conversionRate}%</span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-primary/10 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-pink-500 to-rose-500 transition-all duration-500"
+                                  style={{ width: `${Math.min(adminStats.conversionRate, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-[8px] font-semibold text-muted-foreground text-right">
+                                formula: submits / starts * 100
+                              </span>
+                            </div>
+
+                            {/* Daily stats list */}
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                Daily statistics history
+                              </span>
+                              <div className="max-h-[140px] overflow-y-auto pr-1 flex flex-col gap-1.5 scrollbar-none">
+                                {adminStats.dailyStats.length === 0 ? (
+                                  <span className="text-[10px] italic text-muted-foreground py-2 text-center">
+                                    no dates logged yet
+                                  </span>
+                                ) : (
+                                  adminStats.dailyStats.map((day) => (
+                                    <div
+                                      key={day.date}
+                                      className="flex justify-between items-center text-[10px] p-2 rounded-lg bg-white/5 dark:bg-black/10 border border-foreground/5"
+                                    >
+                                      <span className="font-extrabold text-foreground">{day.date}</span>
+                                      <div className="flex gap-2 font-bold text-muted-foreground">
+                                        <span>👁️ {day.views}</span>
+                                        <span className="text-primary">💖 {day.starts}</span>
+                                        <span className="text-green-500">✅ {day.submits}</span>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-4 text-xs text-muted-foreground">
+                            click refresh to load stats
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
 
                   {/* Cards Section */}
@@ -806,7 +1185,10 @@ export default function Home() {
         {/* Bottom Tab Navigation Bar */}
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/20 dark:bg-black/20 border-t border-white/20 dark:border-white/5 backdrop-blur-xl flex items-center justify-around px-6 z-30 select-none">
           <button
-            onClick={() => setActiveTab("match")}
+            onClick={() => {
+              playSoftClick()
+              setActiveTab("match")
+            }}
             className={`flex flex-col items-center gap-1 transition-all duration-300 ${
               activeTab === "match" ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -816,7 +1198,10 @@ export default function Home() {
           </button>
 
           <button
-            onClick={() => setActiveTab("uikit")}
+            onClick={() => {
+              playSoftClick()
+              setActiveTab("uikit")
+            }}
             className={`flex flex-col items-center gap-1 transition-all duration-300 ${
               activeTab === "uikit" ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -825,6 +1210,22 @@ export default function Home() {
             <span className="text-[9px] font-bold">UI System</span>
           </button>
         </div>
+
+        {/* Aesthetic Success Toast */}
+        <AnimatePresence>
+          {showToast && toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 bg-white/75 dark:bg-black/75 border border-primary/20 backdrop-blur-xl shadow-romantic-glow rounded-full py-2 px-4 text-[10px] font-black uppercase tracking-wider text-primary flex items-center justify-center gap-1.5 select-none"
+            >
+              <Sparkles className="size-3.5 fill-primary text-primary animate-sparkle" />
+              <span>{toastMessage}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Hidden share card optimized for export */}
@@ -859,6 +1260,46 @@ export default function Home() {
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Floating mute/unmute button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <Button
+          variant="glass"
+          size="icon"
+          onClick={toggleMute}
+          className="rounded-full size-12 bg-white/60 dark:bg-black/60 shadow-romantic border-glass hover:scale-115 active:scale-95 transition-all text-primary flex items-center justify-center cursor-pointer"
+          aria-label="Toggle sound"
+        >
+          {isAudioMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+        </Button>
+      </div>
+
+      {/* Click Heart Explosion Particles */}
+      <AnimatePresence>
+        {clickHearts.map((heart) => (
+          <motion.div
+            key={heart.id}
+            initial={{ opacity: 1, scale: 0.2, x: heart.x, y: heart.y }}
+            animate={{
+              opacity: 0,
+              scale: 1.25,
+              y: heart.y - (Math.random() * 120 + 80),
+              x: heart.x + (Math.random() * 80 - 40),
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, ease: "easeOut", delay: heart.delay }}
+            className="fixed pointer-events-none text-primary/75 z-[9999]"
+            style={{
+              left: 0,
+              top: 0,
+              marginTop: -heart.size / 2,
+              marginLeft: -heart.size / 2,
+            }}
+          >
+            <Heart size={heart.size} fill="currentColor" />
+          </motion.div>
+        ))}
       </AnimatePresence>
     </div>
   )

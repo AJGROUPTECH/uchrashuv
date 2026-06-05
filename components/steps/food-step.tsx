@@ -2,6 +2,7 @@
 
 import { Pizza, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { playHoverPop } from "@/lib/audio"
 
 interface FoodStepProps {
   selectedValue: string
@@ -55,10 +56,11 @@ export function FoodStep({ selectedValue, onChange, onNext, onBack }: FoodStepPr
               <button
                 key={dish.id}
                 onClick={() => onChange(dish.name)}
-                className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-300 flex flex-col gap-1 ${
+                onMouseEnter={playHoverPop}
+                className={`w-full text-left p-3.5 rounded-2xl border flex flex-col gap-1 ${
                   isSelected
-                    ? "bg-primary/10 border-primary shadow-romantic"
-                    : "bg-white/20 dark:bg-black/10 border-foreground/5 hover:border-primary/40"
+                    ? "bg-primary/10 border-primary shadow-romantic-glow"
+                    : "bg-white/20 dark:bg-black/10 border-foreground/5 card-hover-glow"
                 }`}
               >
                 <div className="flex justify-between items-center w-full">

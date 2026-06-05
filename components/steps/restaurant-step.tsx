@@ -3,6 +3,7 @@
 import { Star, MapPin, Check, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { playHoverPop } from "@/lib/audio"
 
 interface RestaurantStepProps {
   selectedValue: string
@@ -122,10 +123,11 @@ export function RestaurantStep({ selectedValue, onChange, onNext, onBack }: Rest
               <button
                 key={rest.id}
                 onClick={() => onChange(rest.name)}
-                className={`group text-left rounded-2xl overflow-hidden border transition-all duration-500 flex flex-col relative ${
+                onMouseEnter={playHoverPop}
+                className={`group text-left rounded-2xl overflow-hidden border flex flex-col relative ${
                   isSelected
-                    ? "bg-primary/5 border-primary shadow-romantic scale-[1.01]"
-                    : "bg-white/20 dark:bg-black/10 border-foreground/5 hover:border-primary/40 hover:scale-[1.02] hover:shadow-sm"
+                    ? "bg-primary/5 border-primary shadow-romantic-glow scale-[1.01]"
+                    : "bg-white/20 dark:bg-black/10 border-foreground/5 card-hover-glow"
                 }`}
               >
                 {/* Visual Header Image */}

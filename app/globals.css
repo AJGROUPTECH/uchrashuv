@@ -54,6 +54,7 @@
   --animate-float-fast: float 3s ease-in-out infinite;
   --animate-sparkle: sparkle 2s ease-in-out infinite;
   --animate-fade-in-up: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-shake: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 
   @keyframes heartbeat {
     0%, 100% {
@@ -103,88 +104,95 @@
       transform: translateY(0);
     }
   }
+
+  @keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+  }
 }
 
 :root {
   /* Soft pink rosewater/cream base color scheme */
-  --background: oklch(0.985 0.012 340);
-  --foreground: oklch(0.22 0.06 340);
-  --card: oklch(0.99 0.005 340 / 75%);
-  --card-foreground: oklch(0.22 0.06 340);
-  --popover: oklch(0.99 0.005 340 / 85%);
-  --popover-foreground: oklch(0.22 0.06 340);
+  --background: #fff5f7;
+  --foreground: #2d1419;
+  --card: rgba(255, 253, 254, 0.75);
+  --card-foreground: #2d1419;
+  --popover: rgba(255, 253, 254, 0.85);
+  --popover-foreground: #2d1419;
   
   /* TikTok viral pink (#ff4b82) and soft coral highlights */
-  --primary: oklch(0.66 0.201 340);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: #ff4b82;
+  --primary-foreground: #ffffff;
   
-  --secondary: oklch(0.94 0.035 340);
-  --secondary-foreground: oklch(0.66 0.201 340);
+  --secondary: #fceef1;
+  --secondary-foreground: #ff4b82;
   
-  --muted: oklch(0.965 0.015 340);
-  --muted-foreground: oklch(0.55 0.04 340);
+  --muted: #fbf6f7;
+  --muted-foreground: #8e767a;
   
-  --accent: oklch(0.94 0.05 45);
-  --accent-foreground: oklch(0.4 0.12 30);
+  --accent: #fdecd2;
+  --accent-foreground: #773c2a;
   
-  --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.93 0.02 340);
-  --input: oklch(0.93 0.02 340);
-  --ring: oklch(0.66 0.201 340 / 50%);
+  --destructive: #c53030;
+  --border: rgba(238, 224, 227, 0.8);
+  --input: rgba(238, 224, 227, 0.8);
+  --ring: rgba(255, 75, 130, 0.5);
   
-  --chart-1: oklch(0.66 0.201 340);
-  --chart-2: oklch(0.94 0.05 45);
-  --chart-3: oklch(0.55 0.22 25);
-  --chart-4: oklch(0.8 0.1 340);
-  --chart-5: oklch(0.45 0.15 330);
+  --chart-1: #ff4b82;
+  --chart-2: #fae3c3;
+  --chart-3: #c53030;
+  --chart-4: #ff9ebb;
+  --chart-5: #9c27b0;
   
   /* Modern rounded iOS/TikTok corners */
   --radius: 1.25rem;
   
-  --sidebar: oklch(0.985 0.012 340);
-  --sidebar-foreground: oklch(0.22 0.06 340);
-  --sidebar-primary: oklch(0.66 0.201 340);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.035 340);
-  --sidebar-accent-foreground: oklch(0.66 0.201 340);
-  --sidebar-border: oklch(0.93 0.02 340);
-  --sidebar-ring: oklch(0.66 0.201 340 / 50%);
+  --sidebar: #fff5f7;
+  --sidebar-foreground: #2d1419;
+  --sidebar-primary: #ff4b82;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fceef1;
+  --sidebar-accent-foreground: #ff4b82;
+  --sidebar-border: rgba(238, 224, 227, 0.8);
+  --sidebar-ring: rgba(255, 75, 130, 0.5);
 }
 
 .dark {
   /* Dark midnight velvet wine base */
-  --background: oklch(0.12 0.03 340);
-  --foreground: oklch(0.94 0.02 340);
-  --card: oklch(0.16 0.03 340 / 75%);
-  --card-foreground: oklch(0.94 0.02 340);
-  --popover: oklch(0.16 0.03 340 / 85%);
-  --popover-foreground: oklch(0.94 0.02 340);
+  --background: #190e11;
+  --foreground: #ebdbe0;
+  --card: rgba(27, 16, 19, 0.75);
+  --card-foreground: #ebdbe0;
+  --popover: rgba(27, 16, 19, 0.85);
+  --popover-foreground: #ebdbe0;
   
-  --primary: oklch(0.66 0.201 340);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: #ff4b82;
+  --primary-foreground: #ffffff;
   
-  --secondary: oklch(0.2 0.04 340);
-  --secondary-foreground: oklch(0.94 0.02 340);
+  --secondary: rgba(40, 24, 28, 0.8);
+  --secondary-foreground: #ebdbe0;
   
-  --muted: oklch(0.18 0.03 340);
-  --muted-foreground: oklch(0.65 0.03 340);
+  --muted: rgba(30, 18, 21, 0.8);
+  --muted-foreground: rgba(160, 140, 145, 0.8);
   
-  --accent: oklch(0.22 0.04 45);
-  --accent-foreground: oklch(0.94 0.02 340);
+  --accent: rgba(50, 42, 25, 0.8);
+  --accent-foreground: #ebdbe0;
   
-  --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.22 0.03 340 / 50%);
-  --input: oklch(0.22 0.03 340 / 50%);
-  --ring: oklch(0.66 0.201 340 / 50%);
+  --destructive: #c53030;
+  --border: rgba(238, 224, 227, 0.2);
+  --input: rgba(238, 224, 227, 0.2);
+  --ring: rgba(255, 75, 130, 0.5);
   
-  --sidebar: oklch(0.12 0.03 340);
-  --sidebar-foreground: oklch(0.94 0.02 340);
-  --sidebar-primary: oklch(0.66 0.201 340);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.2 0.04 340);
-  --sidebar-accent-foreground: oklch(0.94 0.02 340);
-  --sidebar-border: oklch(0.22 0.03 340 / 50%);
-  --sidebar-ring: oklch(0.66 0.201 340 / 50%);
+  --sidebar: #190e11;
+  --sidebar-foreground: #ebdbe0;
+  --sidebar-primary: #ff4b82;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(40, 24, 28, 0.8);
+  --sidebar-accent-foreground: #ebdbe0;
+  --sidebar-border: rgba(238, 224, 227, 0.2);
+  --sidebar-ring: rgba(255, 75, 130, 0.5);
 }
 
 @layer base {
@@ -238,24 +246,36 @@
 .bg-romantic-mesh {
   background-color: #ffe5ec;
   background-image: 
-    radial-gradient(at 10% 20%, oklch(0.95 0.03 340) 0px, transparent 50%),
-    radial-gradient(at 90% 10%, oklch(0.93 0.05 45) 0px, transparent 50%),
-    radial-gradient(at 50% 80%, oklch(0.9 0.08 330) 0px, transparent 50%),
-    radial-gradient(at 80% 90%, oklch(0.95 0.03 340) 0px, transparent 50%),
-    radial-gradient(at 20% 90%, oklch(0.92 0.06 350) 0px, transparent 50%);
+    radial-gradient(at 10% 20%, #ffe8ed 0px, transparent 50%),
+    radial-gradient(at 90% 10%, #fdedd5 0px, transparent 50%),
+    radial-gradient(at 50% 80%, #fccde2 0px, transparent 50%),
+    radial-gradient(at 80% 90%, #ffe8ed 0px, transparent 50%),
+    radial-gradient(at 20% 90%, #fadbe5 0px, transparent 50%);
 }
 
 .dark .bg-romantic-mesh {
-  background-color: oklch(0.12 0.03 340);
+  background-color: #190e11;
   background-image: 
-    radial-gradient(at 10% 20%, oklch(0.18 0.04 340) 0px, transparent 50%),
-    radial-gradient(at 90% 10%, oklch(0.16 0.03 45) 0px, transparent 50%),
-    radial-gradient(at 50% 80%, oklch(0.2 0.06 330) 0px, transparent 50%),
-    radial-gradient(at 80% 90%, oklch(0.17 0.04 340) 0px, transparent 50%);
+    radial-gradient(at 10% 20%, #261619 0px, transparent 50%),
+    radial-gradient(at 90% 10%, #231812 0px, transparent 50%),
+    radial-gradient(at 50% 80%, #2d1521 0px, transparent 50%),
+    radial-gradient(at 80% 90%, #241517 0px, transparent 50%);
 }
 
 .text-gradient-romantic {
-  background: linear-gradient(135deg, oklch(0.66 0.201 340) 0%, oklch(0.78 0.14 350) 100%);
+  background: linear-gradient(135deg, #ff4b82 0%, #ff9ebb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Card Hover Glow Micro-Interaction */
+.card-hover-glow {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.card-hover-glow:hover {
+  box-shadow: 0 10px 25px -5px rgba(255, 75, 130, 0.25), 
+              0 0 12px 1px rgba(255, 75, 130, 0.15) !important;
+  border-color: #ff4b82 !important;
+  transform: translateY(-2px) scale(1.01);
 }

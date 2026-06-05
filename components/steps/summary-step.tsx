@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, Pizza, Sparkles, Send, User, Share2, MessageCircle, RefreshCw, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { motion, AnimatePresence } from "framer-motion"
+
 
 interface SummaryStepProps {
   date: string
@@ -45,11 +47,37 @@ export function SummaryStep({
 }: SummaryStepProps) {
   const [validationError, setValidationError] = useState("")
   const [starterIdx, setStarterIdx] = useState(0)
+  const [isShaking, setIsShaking] = useState(false)
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0)
 
   useEffect(() => {
     // Select a random starter on load
     setStarterIdx(Math.floor(Math.random() * conversationStarters.length))
+
+    const checkCooldown = () => {
+      const lastSubmitStr = localStorage.getItem("date-sparks-last-submit")
+      if (lastSubmitStr) {
+        const lastSubmit = parseInt(lastSubmitStr, 10)
+        const elapsed = Date.now() - lastSubmit
+        const cooldownMs = 10 * 60 * 1000 // 10 minutes
+        if (elapsed < cooldownMs) {
+          setCooldownRemaining(Math.ceil((cooldownMs - elapsed) / 1000))
+        } else {
+          setCooldownRemaining(0)
+        }
+      }
+    }
+
+    checkCooldown()
+    const timer = setInterval(checkCooldown, 1000)
+    return () => clearInterval(timer)
   }, [])
+
+  const formatCooldownTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60)
+    const secs = totalSeconds % 60
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
+  }
 
   const rotateStarter = () => {
     if (isSubmitting) return
@@ -62,14 +90,21 @@ export function SummaryStep({
     return `June ${day}, 2026 🗓️`
   }
 
+  const triggerShake = () => {
+    setIsShaking(true)
+    setTimeout(() => setIsShaking(false), 500)
+  }
+
   const handleSubmit = () => {
     if (isSubmitting) return
     if (!name.trim()) {
       setValidationError("Please enter your name!")
+      triggerShake()
       return
     }
     if (!contact.trim()) {
       setValidationError("Please enter your Instagram or phone!")
+      triggerShake()
       return
     }
     setValidationError("")
@@ -144,7 +179,7 @@ export function SummaryStep({
         </div>
 
         {/* Inputs */}
-        <div className="flex flex-col gap-3">
+        <div className={`flex flex-col gap-3 transition-transform duration-100 ${isShaking ? "animate-shake" : ""}`}>
           {/* User Name input */}
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
@@ -182,6 +217,30 @@ export function SummaryStep({
           </div>
         </div>
 
+        <AnimatePresence>
+          {cooldownRemaining > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 5 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="mt-2 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/30 dark:border-amber-500/10 text-center flex flex-col items-center justify-center gap-1.5 shadow-sm select-none"
+            >
+              <p className="text-[11px] font-black tracking-wide text-amber-500 dark:text-amber-400 whitespace-pre-line leading-normal">
+                too many vibes too fast 😭
+                try again in a few minutes
+              </p>
+              <div className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                </span>
+                cooldown: {formatCooldownTime(cooldownRemaining)}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {activeError && (
           <p className="text-[10px] font-bold text-destructive text-center mt-1 animate-shake">
             ⚠️ {activeError}
@@ -202,7 +261,7 @@ export function SummaryStep({
         <Button 
           variant="romantic" 
           className="w-2/3 gap-2"
-          disabled={!name.trim() || !contact.trim() || isSubmitting}
+          disabled={!name.trim() || !contact.trim() || isSubmitting || cooldownRemaining > 0}
           onClick={handleSubmit}
         >
           {isSubmitting ? (

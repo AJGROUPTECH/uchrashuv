@@ -52,24 +52,34 @@ export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicator
           return (
             <div key={idx} className="flex flex-col items-center gap-1">
               <motion.div
-                animate={{
-                  scale: isActive ? 1.15 : 1,
+                animate={isActive ? {
+                  scale: [1.1, 1.22, 1.1],
+                  boxShadow: [
+                    "0 0 0 0px rgba(255, 75, 130, 0.3)",
+                    "0 0 0 8px rgba(255, 75, 130, 0)",
+                    "0 0 0 0px rgba(255, 75, 130, 0.3)"
+                  ],
+                  backgroundColor: "oklch(0.94 0.035 340)",
+                  color: "oklch(0.66 0.201 340)"
+                } : {
+                  scale: 1,
+                  boxShadow: "0 0 0 0px rgba(0, 0, 0, 0)",
                   backgroundColor: isCompleted
                     ? "oklch(0.66 0.201 340)" // primary
-                    : isActive
-                    ? "oklch(0.94 0.035 340)" // secondary
                     : "rgba(255, 255, 255, 0.0)", // transparent/inactive
                   color: isCompleted
                     ? "#ffffff"
-                    : isActive
-                    ? "oklch(0.66 0.201 340)"
                     : "oklch(0.55 0.04 340)", // muted
                 }}
+                transition={isActive ? {
+                  scale: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                  boxShadow: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                } : { duration: 0.22 }}
                 className={`size-7 rounded-full flex items-center justify-center border transition-colors ${
                   isCompleted 
                     ? "border-primary"
                     : isActive
-                    ? "border-primary/40 shadow-sm"
+                    ? "border-primary"
                     : "border-foreground/10"
                 }`}
               >

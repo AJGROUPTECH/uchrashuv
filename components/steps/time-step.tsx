@@ -2,6 +2,7 @@
 
 import { Clock, Sun, Sunset, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { playHoverPop } from "@/lib/audio"
 
 interface TimeStepProps {
   selectedValue: string
@@ -64,10 +65,11 @@ export function TimeStep({ selectedValue, onChange, onNext, onBack }: TimeStepPr
               <button
                 key={slot.id}
                 onClick={() => onChange(slot.time)}
-                className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-300 flex items-start gap-3.5 ${
+                onMouseEnter={playHoverPop}
+                className={`w-full text-left p-3.5 rounded-2xl border flex items-start gap-3.5 ${
                   isSelected
-                    ? "bg-primary/10 border-primary shadow-romantic"
-                    : "bg-white/20 dark:bg-black/10 border-foreground/5 hover:border-primary/40"
+                    ? "bg-primary/10 border-primary shadow-romantic-glow"
+                    : "bg-white/20 dark:bg-black/10 border-foreground/5 card-hover-glow"
                 }`}
               >
                 {/* Icon wrapper */}
