@@ -46,6 +46,28 @@ export async function submitProposal(data: SubmissionData) {
       return { success: false, error: error.message }
     }
 
+    // Optional Telegram notification dispatch
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN
+    const tgChatId = process.env.TELEGRAM_CHAT_ID
+
+    if (tgToken && tgChatId) {
+      try {
+        const text = `💖 *New Date Proposal Locked In!* 💖\n\n👤 *Candidate:* ${data.candidate_name}\n🗓️ *Date:* ${data.selected_date}\n⏰ *Time:* ${data.selected_time}\n📍 *Spot:* ${data.selected_restaurant}\n🍕 *Food:* ${data.selected_food}\n✨ *Archetype:* ${data.selected_archetype}\n📱 *Contact:* ${data.contact_info}\n\n_Sent from DateSparks App_ ✨`
+        
+        await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: tgChatId,
+            text: text,
+            parse_mode: "Markdown",
+          }),
+        })
+      } catch (tgErr) {
+        console.error("Failed to dispatch Telegram notification:", tgErr)
+      }
+    }
+
     return { success: true }
   } catch (err: any) {
     console.error("Server Action Exception:", err)
