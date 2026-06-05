@@ -28,6 +28,7 @@ import { RestaurantStep } from "@/components/steps/restaurant-step"
 import { FoodStep } from "@/components/steps/food-step"
 import { PersonalityStep } from "@/components/steps/personality-step"
 import { SummaryStep } from "@/components/steps/summary-step"
+import { submitProposal } from "@/app/actions"
 
 const tooltips = [
   "nice try 😭",
@@ -114,6 +115,36 @@ export default function Home() {
   // Contacts
   const [userName, setUserName] = useState("")
   const [contactHandle, setContactHandle] = useState("")
+  
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
+
+  const handleProposalSubmit = async () => {
+    setIsSubmitting(true)
+    setSubmitError("")
+    
+    try {
+      const result = await submitProposal({
+        candidate_name: userName,
+        contact_info: contactHandle,
+        selected_date: selectedDate,
+        selected_time: selectedTime,
+        selected_restaurant: selectedRestaurant,
+        selected_food: selectedFood,
+        selected_archetype: personalityResult,
+      })
+      
+      if (result.success) {
+        navigateTo(7) // Go to success step!
+      } else {
+        setSubmitError(result.error || "Failed to submit proposal.")
+      }
+    } catch (err: any) {
+      setSubmitError("Network connection error. Try again! 😭")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const [secondsElapsed, setSecondsElapsed] = useState(0)
 
@@ -443,8 +474,10 @@ export default function Home() {
                       contact={contactHandle}
                       onNameChange={setUserName}
                       onContactChange={setContactHandle}
-                      onSubmit={() => navigateTo(7)}
+                      onSubmit={handleProposalSubmit}
                       onBack={() => navigateTo(5)}
+                      isSubmitting={isSubmitting}
+                      submitError={submitError}
                     />
                   )}
 
@@ -460,8 +493,8 @@ export default function Home() {
                           <CardTitle className="text-3xl font-black text-gradient-romantic tracking-wide animate-pulse">
                             IT'S BOOKED! 🎉
                           </CardTitle>
-                          <CardDescription className="text-xs font-semibold dark:text-rose-200">
-                            Proposal summaries have been saved.
+                          <CardDescription className="text-xs font-semibold text-primary/80 dark:text-rose-200/80 animate-pulse">
+                            proposal locked in 💌
                           </CardDescription>
                         </CardHeader>
                         

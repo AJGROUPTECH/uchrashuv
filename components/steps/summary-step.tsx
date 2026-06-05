@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, MapPin, Pizza, Sparkles, Send, User, Share2, MessageCircle, RefreshCw } from "lucide-react"
+import { Calendar, Clock, MapPin, Pizza, Sparkles, Send, User, Share2, MessageCircle, RefreshCw, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SummaryStepProps {
@@ -16,6 +16,8 @@ interface SummaryStepProps {
   onContactChange: (val: string) => void
   onSubmit: () => void
   onBack: () => void
+  isSubmitting?: boolean
+  submitError?: string
 }
 
 const conversationStarters = [
@@ -38,8 +40,10 @@ export function SummaryStep({
   onContactChange,
   onSubmit,
   onBack,
+  isSubmitting = false,
+  submitError = "",
 }: SummaryStepProps) {
-  const [error, setError] = useState("")
+  const [validationError, setValidationError] = useState("")
   const [starterIdx, setStarterIdx] = useState(0)
 
   useEffect(() => {
@@ -48,6 +52,7 @@ export function SummaryStep({
   }, [])
 
   const rotateStarter = () => {
+    if (isSubmitting) return
     setStarterIdx((prev) => (prev + 1) % conversationStarters.length)
   }
 
@@ -58,21 +63,24 @@ export function SummaryStep({
   }
 
   const handleSubmit = () => {
+    if (isSubmitting) return
     if (!name.trim()) {
-      setError("Please enter your name!")
+      setValidationError("Please enter your name!")
       return
     }
     if (!contact.trim()) {
-      setError("Please enter your Instagram or phone!")
+      setValidationError("Please enter your Instagram or phone!")
       return
     }
-    setError("")
+    setValidationError("")
     onSubmit()
   }
 
+  const activeError = validationError || submitError
+
   return (
     <div className="flex-1 flex flex-col justify-between h-full gap-4">
-      <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-0.5 scrollbar-thin">
+      <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-0.5 scrollbar-none">
         <div className="text-center">
           <h2 className="text-lg font-black tracking-tight text-gradient-romantic">Lock It In! 🔒💖</h2>
           <p className="text-xs text-muted-foreground">"almost official. lock it in! 🔐"</p>
@@ -124,7 +132,8 @@ export function SummaryStep({
             </span>
             <button 
               onClick={rotateStarter}
-              className="flex items-center gap-0.5 hover:text-primary/70 transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              className="flex items-center gap-0.5 hover:text-primary/70 transition-colors cursor-pointer disabled:opacity-30"
             >
               <RefreshCw className="size-2.5" /> Next
             </button>
@@ -145,11 +154,12 @@ export function SummaryStep({
               type="text"
               placeholder="Cutie McCute 💖"
               value={name}
+              disabled={isSubmitting}
               onChange={(e) => {
                 onNameChange(e.target.value)
-                if (error) setError("")
+                if (validationError) setValidationError("")
               }}
-              className="w-full text-xs p-3 rounded-xl bg-white/10 dark:bg-black/10 border border-foreground/10 outline-none focus:border-primary/50 transition-colors"
+              className="w-full text-xs p-3 rounded-xl bg-white/10 dark:bg-black/10 border border-foreground/10 outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
             />
           </div>
 
@@ -162,33 +172,48 @@ export function SummaryStep({
               type="text"
               placeholder="@handles or digits 📱"
               value={contact}
+              disabled={isSubmitting}
               onChange={(e) => {
                 onContactChange(e.target.value)
-                if (error) setError("")
+                if (validationError) setValidationError("")
               }}
-              className="w-full text-xs p-3 rounded-xl bg-white/10 dark:bg-black/10 border border-foreground/10 outline-none focus:border-primary/50 transition-colors"
+              className="w-full text-xs p-3 rounded-xl bg-white/10 dark:bg-black/10 border border-foreground/10 outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
             />
           </div>
         </div>
 
-        {error && (
-          <p className="text-[10px] font-bold text-destructive text-center mt-1">
-            ⚠️ {error}
+        {activeError && (
+          <p className="text-[10px] font-bold text-destructive text-center mt-1 animate-shake">
+            ⚠️ {activeError}
           </p>
         )}
       </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3 mt-auto pt-2">
-        <Button variant="ghost" className="w-1/3 text-xs" onClick={onBack}>
+        <Button 
+          variant="ghost" 
+          className="w-1/3 text-xs" 
+          onClick={onBack}
+          disabled={isSubmitting}
+        >
           Back
         </Button>
         <Button 
           variant="romantic" 
           className="w-2/3 gap-2"
+          disabled={!name.trim() || !contact.trim() || isSubmitting}
           onClick={handleSubmit}
         >
-          Send Proposal <Send className="size-3.5" />
+          {isSubmitting ? (
+            <>
+              Locking in... <Heart className="size-3.5 fill-white animate-heartbeat" />
+            </>
+          ) : (
+            <>
+              Send Proposal <Send className="size-3.5" />
+            </>
+          )}
         </Button>
       </div>
     </div>
