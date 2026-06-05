@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Heart, 
@@ -29,6 +29,7 @@ import { FoodStep } from "@/components/steps/food-step"
 import { PersonalityStep } from "@/components/steps/personality-step"
 import { SummaryStep } from "@/components/steps/summary-step"
 import { submitProposal } from "@/app/actions"
+import { ShareCard } from "@/components/share-card"
 
 const tooltips = [
   "nice try 😭",
@@ -118,6 +119,91 @@ export default function Home() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
+
+  // Save Vibe Card export states
+  const shareCardRef = useRef<HTMLDivElement>(null)
+  const [isGeneratingCard, setIsGeneratingCard] = useState(false)
+  const [generatingStatus, setGeneratingStatus] = useState("")
+  const [copyFeedback, setCopyFeedback] = useState(false)
+
+  const handleSaveImage = async () => {
+    if (!shareCardRef.current) return
+    setIsGeneratingCard(true)
+    setGeneratingStatus("creating your vibe card... 💫")
+    
+    // Slight artificial delay for smooth experience
+    await new Promise((resolve) => setTimeout(resolve, 850))
+    
+    try {
+      const html2canvas = (await import("html2canvas")).default
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      })
+      
+      const dataUrl = canvas.toDataURL("image/png")
+      const link = document.createElement("a")
+      link.download = `DateSparks_${userName.replace(/\s+/g, "_") || "Vibe"}_Card.png`
+      link.href = dataUrl
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error("Failed to generate card image:", err)
+      alert("Oops! Failed to save image. Please try again! 😭")
+    } finally {
+      setIsGeneratingCard(false)
+    }
+  }
+
+  const handleCopyImage = async () => {
+    if (!shareCardRef.current) return
+    setIsGeneratingCard(true)
+    setGeneratingStatus("creating your vibe card... 💫")
+    
+    await new Promise((resolve) => setTimeout(resolve, 850))
+    
+    try {
+      const html2canvas = (await import("html2canvas")).default
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      })
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          throw new Error("Canvas blob generation failed")
+        }
+        try {
+          const clipboardItem = new (window as any).ClipboardItem({
+            [blob.type]: blob
+          })
+          await navigator.clipboard.write([clipboardItem])
+          setCopyFeedback(true)
+          setTimeout(() => setCopyFeedback(false), 2000)
+        } catch (clipErr) {
+          console.error("Clipboard write failed:", clipErr)
+          alert("Copying images is not supported in this browser. Please use Save Image instead! 💖")
+        }
+      }, "image/png")
+    } catch (err) {
+      console.error("Failed to copy card image:", err)
+      alert("Oops! Failed to copy image. Please try again! 😭")
+    } finally {
+      setIsGeneratingCard(false)
+    }
+  }
+
+  const handleShareTelegram = () => {
+    const day = selectedDate ? selectedDate.split("-")[2] : "12"
+    const text = `Check out our DateSparks Vibe Card! 📸 Locked in for June ${day} at ${selectedTime || "7:00 PM"}. Spot: ${selectedRestaurant || "ARROWS & SPARROWS"}. Food: ${selectedFood || "Truffle Pizza"}. Archetype: ${personalityResult || "Fine Dining Romanticist 🌹"} 💌`
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`
+    window.open(shareUrl, "_blank")
+  }
 
   const handleProposalSubmit = async () => {
     setIsSubmitting(true)
@@ -536,16 +622,34 @@ export default function Home() {
                         </CardContent>
 
                         <CardFooter className="flex flex-col gap-2">
+                          <div className="grid grid-cols-2 gap-2 w-full">
+                            <Button 
+                              variant="romantic" 
+                              className="gap-2 font-bold text-xs"
+                              onClick={handleSaveImage}
+                            >
+                              Save Image 📸
+                            </Button>
+                            <Button 
+                              variant="glass" 
+                              className="gap-2 font-semibold text-xs border-primary/20 text-primary"
+                              onClick={handleCopyImage}
+                            >
+                              {copyFeedback ? "Copied! 📋" : "Copy Image"}
+                            </Button>
+                          </div>
+                          
                           <Button 
                             variant="romantic" 
-                            className="w-full gap-2 font-bold"
-                            onClick={() => alert(`Sharing link with Instagram tag: ${contactHandle}`)}
+                            className="w-full gap-2 font-bold bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 border-none shadow-none text-white text-xs"
+                            onClick={handleShareTelegram}
                           >
-                            Share Vibe Card 📱
+                            Share to Telegram ✈️
                           </Button>
+
                           <Button 
                             variant="ghost" 
-                            className="w-full text-xs font-bold text-muted-foreground hover:text-primary gap-1"
+                            className="w-full text-xs font-bold text-muted-foreground hover:text-primary gap-1 mt-1"
                             onClick={resetAll}
                           >
                             <RefreshCw className="size-3" /> Restart Plan
@@ -722,6 +826,40 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* Hidden share card optimized for export */}
+      <ShareCard
+        ref={shareCardRef}
+        name={userName}
+        contact={contactHandle}
+        date={selectedDate}
+        time={selectedTime}
+        restaurant={selectedRestaurant}
+        food={selectedFood}
+        personality={personalityResult}
+      />
+
+      {/* Export loading overlay */}
+      <AnimatePresence>
+        {isGeneratingCard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md"
+          >
+            <div className="bg-white/10 border-glass p-8 rounded-3xl flex flex-col items-center justify-center max-w-[320px] text-center shadow-romantic-glow">
+              <div className="relative size-16 mb-4 flex items-center justify-center">
+                <Heart className="size-10 text-primary fill-primary animate-ping absolute opacity-45" />
+                <Heart className="size-10 text-primary fill-primary z-10 animate-heartbeat" />
+              </div>
+              <p className="text-sm font-black text-white tracking-wide uppercase animate-pulse">
+                {generatingStatus}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
