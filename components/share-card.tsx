@@ -54,7 +54,7 @@ export const ShareCard = React.forwardRef<HTMLDivElement, ShareCardProps>(
           <div className="size-12 bg-primary/15 rounded-full flex items-center justify-center mb-2.5 shadow-sm border border-primary/20 animate-heartbeat">
             <Heart className="size-6 text-primary fill-primary" />
           </div>
-          <h1 className="text-xl font-black tracking-widest text-gradient-romantic">DateSparks Vibe Card</h1>
+          <h1 className="text-xl font-black tracking-widest text-gradient-romantic">Uchrashuv Vibe Card</h1>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Our locked proposal spark</p>
         </div>
 
@@ -134,7 +134,7 @@ export const ShareCard = React.forwardRef<HTMLDivElement, ShareCardProps>(
         <div className="flex flex-col items-center gap-1.5 z-10 mb-2 select-none">
           <div className="flex items-center gap-1 text-[11px] font-black text-primary tracking-widest uppercase animate-pulse">
             <Sparkles className="size-3.5 fill-primary text-primary" />
-            <span>Made with DateSparks ✨</span>
+            <span>Made with Uchrashuv ✨</span>
           </div>
           <span className="text-[8px] font-extrabold text-muted-foreground/80 tracking-wide uppercase">"proposal locked in 💌"</span>
         </div>

@@ -52,7 +52,7 @@ export async function submitProposal(data: SubmissionData) {
 
     if (tgToken && tgChatId) {
       try {
-        const text = `💖 *New Date Proposal Locked In!* 💖\n\n👤 *Candidate:* ${data.candidate_name}\n🗓️ *Date:* ${data.selected_date}\n⏰ *Time:* ${data.selected_time}\n📍 *Spot:* ${data.selected_restaurant}\n🍕 *Food:* ${data.selected_food}\n✨ *Archetype:* ${data.selected_archetype}\n📱 *Contact:* ${data.contact_info}\n\n_Sent from DateSparks App_ ✨`
+        const text = `💖 *New Date Proposal Locked In!* 💖\n\n👤 *Candidate:* ${data.candidate_name}\n🗓️ *Date:* ${data.selected_date}\n⏰ *Time:* ${data.selected_time}\n📍 *Spot:* ${data.selected_restaurant}\n🍕 *Food:* ${data.selected_food}\n✨ *Archetype:* ${data.selected_archetype}\n📱 *Contact:* ${data.contact_info}\n\n_Sent from Uchrashuv App_ ✨`
         
         await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
           method: "POST",

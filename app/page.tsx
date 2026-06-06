@@ -336,7 +336,7 @@ export default function Home() {
       
       const dataUrl = canvas.toDataURL("image/png")
       const link = document.createElement("a")
-      link.download = `DateSparks_${userName.replace(/\s+/g, "_") || "Vibe"}_Card.png`
+      link.download = `Uchrashuv_${userName.replace(/\s+/g, "_") || "Vibe"}_Card.png`
       link.href = dataUrl
       document.body.appendChild(link)
       link.click()
@@ -356,38 +356,40 @@ export default function Home() {
     setIsGeneratingCard(true)
     setGeneratingStatus("creating your vibe card... 💫")
     
-    await new Promise((resolve) => setTimeout(resolve, 850))
-    
     try {
       const html2canvas = (await import("html2canvas")).default
-      const canvas = await html2canvas(shareCardRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
+      
+      // Promise-based clipboard write (retains user gesture context)
+      const blobPromise = new Promise<Blob>(async (resolve, reject) => {
+        try {
+          const canvas = await html2canvas(shareCardRef.current!, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null,
+          })
+          canvas.toBlob((b) => {
+            if (b) resolve(b)
+            else reject(new Error("Canvas toBlob failed"))
+          }, "image/png")
+        } catch (err) {
+          reject(err)
+        }
       })
       
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          throw new Error("Canvas blob generation failed")
-        }
-        try {
-          const clipboardItem = new (window as any).ClipboardItem({
-            [blob.type]: blob
-          })
-          await navigator.clipboard.write([clipboardItem])
-          playCameraShutter()
-          triggerSuccessToast()
-          setCopyFeedback(true)
-          setTimeout(() => setCopyFeedback(false), 2000)
-        } catch (clipErr) {
-          console.error("Clipboard write failed:", clipErr)
-          alert("Copying images is not supported in this browser. Please use Save Image instead! 💖")
-        }
-      }, "image/png")
+      const clipboardItem = new ClipboardItem({
+        "image/png": blobPromise
+      })
+      
+      await navigator.clipboard.write([clipboardItem])
+      
+      playCameraShutter()
+      triggerSuccessToast()
+      setCopyFeedback(true)
+      setTimeout(() => setCopyFeedback(false), 2000)
     } catch (err) {
       console.error("Failed to copy card image:", err)
-      alert("Oops! Failed to copy image. Please try again! 😭")
+      alert("Oops! Failed to copy image. Please use Save Image instead! 💖")
     } finally {
       setIsGeneratingCard(false)
     }
@@ -396,7 +398,7 @@ export default function Home() {
   const handleShareTelegram = () => {
     playSoftClick()
     const day = selectedDate ? selectedDate.split("-")[2] : "12"
-    const text = `Check out our DateSparks Vibe Card! 📸 Locked in for June ${day} at ${selectedTime || "7:00 PM"}. Spot: ${selectedRestaurant || "ARROWS & SPARROWS"}. Food: ${selectedFood || "Truffle Pizza"}. Archetype: ${personalityResult || "Fine Dining Romanticist 🌹"} 💌`
+    const text = `Check out our Uchrashuv Vibe Card! 📸 Locked in for June ${day} at ${selectedTime || "7:00 PM"}. Spot: ${selectedRestaurant || "ARROWS & SPARROWS"}. Food: ${selectedFood || "Truffle Pizza"}. Archetype: ${personalityResult || "Fine Dining Romanticist 🌹"} 💌`
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`
     window.open(shareUrl, "_blank")
   }
@@ -472,6 +474,13 @@ export default function Home() {
       fetchStats()
     }
   }, [activeTab])
+
+  // Preload html2canvas when entering the success step (Step 7) to avoid user activation context expiry
+  useEffect(() => {
+    if (flowStep === 7) {
+      import("html2canvas").catch(() => {})
+    }
+  }, [flowStep])
 
   const getPlayfulTimeMessage = () => {
     if (flowStep === 1) return "lowkey hoping you pick a weekend 🤭"
@@ -611,7 +620,7 @@ export default function Home() {
         <div className="flex justify-between items-center px-6 pt-5 pb-3 bg-white/5 dark:bg-black/20 border-b border-foreground/5 z-30 select-none">
           <div className="flex items-center gap-1.5">
             <Flame className="text-primary animate-pulse size-5 fill-primary" />
-            <span className="font-bold tracking-tight text-sm text-gradient-romantic">DateSparks</span>
+            <span className="font-bold tracking-tight text-sm text-gradient-romantic">Uchrashuv</span>
           </div>
           
           <div className="flex items-center gap-2">
@@ -785,6 +794,7 @@ export default function Home() {
                   {/* STEP 4: FOOD SELECTION */}
                   {flowStep === 4 && (
                     <FoodStep
+                      restaurantName={selectedRestaurant}
                       selectedValue={selectedFood}
                       onChange={setSelectedFood}
                       onNext={() => navigateTo(5)}
