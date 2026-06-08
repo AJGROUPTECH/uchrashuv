@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, MapPin, Pizza, Sparkles, Send, User, Share2, MessageCircle, RefreshCw, Heart } from "lucide-react"
+import { Calendar, Clock, MapPin, Pizza, Sparkles, MessageCircle, RefreshCw, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { motion, AnimatePresence } from "framer-motion"
-
+import { motion } from "framer-motion"
 
 interface SummaryStepProps {
   date: string
@@ -12,14 +11,8 @@ interface SummaryStepProps {
   restaurant: string
   food: string
   personality: string
-  name: string
-  contact: string
-  onNameChange: (val: string) => void
-  onContactChange: (val: string) => void
-  onSubmit: () => void
+  onNext: () => void
   onBack: () => void
-  isSubmitting?: boolean
-  submitError?: string
 }
 
 const conversationStarters = [
@@ -36,27 +29,18 @@ export function SummaryStep({
   restaurant,
   food,
   personality,
-  name,
-  contact,
-  onNameChange,
-  onContactChange,
-  onSubmit,
+  onNext,
   onBack,
-  isSubmitting = false,
-  submitError = "",
 }: SummaryStepProps) {
-  const [validationError, setValidationError] = useState("")
   const [starterIdx, setStarterIdx] = useState(0)
-  const [isShaking, setIsShaking] = useState(false)
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0)
   const [selectedReward, setSelectedReward] = useState("")
 
   useEffect(() => {
     // Select a random starter on load
     setStarterIdx(Math.floor(Math.random() * conversationStarters.length))
 
-    // Select a random reward on load (Feature 2)
-    const percentage = Math.floor(Math.random() * (99 - 80 + 1)) + 80 // Dynamic 80 to 99
+    // Select a random reward on load with a dynamic percentage between 80% and 99%
+    const percentage = Math.floor(Math.random() * (99 - 80 + 1)) + 80
     const rewards = [
       `🌹 Romanticist Score: ${percentage}%`,
       `☕ Green Flag Energy: ${percentage}%`,
@@ -67,34 +51,9 @@ export function SummaryStep({
     ]
     const randomReward = rewards[Math.floor(Math.random() * rewards.length)]
     setSelectedReward(randomReward)
-
-    const checkCooldown = () => {
-      const lastSubmitStr = localStorage.getItem("date-sparks-last-submit")
-      if (lastSubmitStr) {
-        const lastSubmit = parseInt(lastSubmitStr, 10)
-        const elapsed = Date.now() - lastSubmit
-        const cooldownMs = 5 * 60 * 1000 // 5 minutes
-        if (elapsed < cooldownMs) {
-          setCooldownRemaining(Math.ceil((cooldownMs - elapsed) / 1000))
-        } else {
-          setCooldownRemaining(0)
-        }
-      }
-    }
-
-    checkCooldown()
-    const timer = setInterval(checkCooldown, 1000)
-    return () => clearInterval(timer)
   }, [])
 
-  const formatCooldownTime = (totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60)
-    const secs = totalSeconds % 60
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
-  }
-
   const rotateStarter = () => {
-    if (isSubmitting) return
     setStarterIdx((prev) => (prev + 1) % conversationStarters.length)
   }
 
@@ -104,34 +63,11 @@ export function SummaryStep({
     return `June ${day}, 2026 🗓️`
   }
 
-  const triggerShake = () => {
-    setIsShaking(true)
-    setTimeout(() => setIsShaking(false), 500)
-  }
-
-  const handleSubmit = () => {
-    if (isSubmitting) return
-    if (!name.trim()) {
-      setValidationError("Please enter your name!")
-      triggerShake()
-      return
-    }
-    if (!contact.trim()) {
-      setValidationError("Please enter your Instagram or Telegram username!")
-      triggerShake()
-      return
-    }
-    setValidationError("")
-    onSubmit()
-  }
-
-  const activeError = validationError || submitError
-
   return (
-    <div className="flex-1 flex flex-col justify-between h-full gap-4">
+    <div className="flex-1 flex flex-col justify-between h-full gap-4 select-none">
       <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-0.5 scrollbar-none">
         <div className="text-center">
-          <h2 className="text-lg font-black tracking-tight text-gradient-romantic">Lock It In! 🔒💖</h2>
+          <h2 className="text-lg font-black tracking-tight text-gradient-romantic">Review Your Vibe ✨</h2>
           <p className="text-xs text-muted-foreground">"almost official. lock it in! 🔐"</p>
         </div>
 
@@ -204,8 +140,7 @@ export function SummaryStep({
             </span>
             <button 
               onClick={rotateStarter}
-              disabled={isSubmitting}
-              className="flex items-center gap-0.5 hover:text-primary/70 transition-colors cursor-pointer disabled:opacity-30"
+              className="flex items-center gap-0.5 hover:text-primary/70 transition-colors cursor-pointer"
             >
               <RefreshCw className="size-2.5" /> Next
             </button>
@@ -214,105 +149,23 @@ export function SummaryStep({
             "{conversationStarters[starterIdx]}"
           </p>
         </div>
-
-        {/* Inputs */}
-        <div className={`flex flex-col gap-3 transition-transform duration-100 ${isShaking ? "animate-shake" : ""}`}>
-          {/* User Name input */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <User className="size-3" /> Candidate Name
-            </label>
-            <input
-              type="text"
-              placeholder="Cutie McCute 💖"
-              value={name}
-              disabled={isSubmitting}
-              onChange={(e) => {
-                onNameChange(e.target.value)
-                if (validationError) setValidationError("")
-              }}
-              className="w-full text-xs p-3 rounded-xl bg-white/10 dark:bg-black/10 border border-foreground/10 outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
-            />
-          </div>
-
-          {/* User Contact handle */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <Share2 className="size-3" /> Contact Details
-            </label>
-            <input
-              type="text"
-              placeholder="@instagram or @telegram"
-              value={contact}
-              disabled={isSubmitting}
-              onChange={(e) => {
-                onContactChange(e.target.value)
-                if (validationError) setValidationError("")
-              }}
-              className="w-full text-xs p-3 rounded-xl bg-white/10 dark:bg-black/10 border border-foreground/10 outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
-            />
-            <p className="text-[9.5px] text-muted-foreground font-semibold leading-normal mt-0.5 px-0.5">
-              Leave your Instagram or Telegram username so I know who unlocked this vibe 😌
-            </p>
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {cooldownRemaining > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 5 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 5 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="mt-2 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/30 dark:border-amber-500/10 text-center flex flex-col items-center justify-center gap-1.5 shadow-sm select-none"
-            >
-              <p className="text-[11px] font-black tracking-wide text-amber-500 dark:text-amber-400 whitespace-pre-line leading-normal">
-                too many vibes too fast 😭
-                try again in a few minutes
-              </p>
-              <div className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
-                </span>
-                cooldown: {formatCooldownTime(cooldownRemaining)}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {activeError && (
-          <p className="text-[10px] font-bold text-destructive text-center mt-1 animate-shake">
-            ⚠️ {activeError}
-          </p>
-        )}
       </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3 mt-auto pt-2">
         <Button 
           variant="ghost" 
-          className="w-1/3 text-xs" 
+          className="w-1/3 text-xs cursor-pointer" 
           onClick={onBack}
-          disabled={isSubmitting}
         >
           Back
         </Button>
         <Button 
           variant="romantic" 
-          className="w-2/3 gap-2"
-          disabled={!name.trim() || !contact.trim() || isSubmitting || cooldownRemaining > 0}
-          onClick={handleSubmit}
+          className="w-2/3 gap-2 cursor-pointer"
+          onClick={onNext}
         >
-          {isSubmitting ? (
-            <>
-              Locking in... <Heart className="size-3.5 fill-white animate-heartbeat" />
-            </>
-          ) : (
-            <>
-              Send Proposal <Send className="size-3.5" />
-            </>
-          )}
+          Continue 😌 <ArrowRight className="size-3.5" />
         </Button>
       </div>
     </div>

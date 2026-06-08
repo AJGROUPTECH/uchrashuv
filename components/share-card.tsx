@@ -66,9 +66,8 @@ export const ShareCard = React.forwardRef<HTMLDivElement, ShareCardProps>(
             
             {/* Candidate Sub-card */}
             <div className="text-center pb-2 border-b border-foreground/5">
-              <span className="text-[9px] font-black text-primary uppercase tracking-widest block mb-0.5">Proposed Candidate</span>
-              <h2 className="text-lg font-black text-foreground truncate">{name || "Cutie McCute"}</h2>
-              <span className="text-[9px] font-semibold text-muted-foreground block">{contact || "@handles"}</span>
+              <span className="text-[9px] font-black text-primary uppercase tracking-widest block mb-0.5">Unlocked By</span>
+              <h2 className="text-lg font-black text-foreground truncate">{name || "@username"}</h2>
             </div>
 
             {/* Selection list */}

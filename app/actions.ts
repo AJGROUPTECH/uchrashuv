@@ -3,7 +3,7 @@
 import { supabase } from "@/lib/supabase"
 
 export interface SubmissionData {
-  candidate_name: string
+  candidate_name?: string
   contact_info: string
   selected_date: string
   selected_time: string
@@ -15,7 +15,6 @@ export interface SubmissionData {
 export async function submitProposal(data: SubmissionData) {
   // Server-side validation of empty fields
   if (
-    !data.candidate_name.trim() ||
     !data.contact_info.trim() ||
     !data.selected_date ||
     !data.selected_time ||
@@ -31,7 +30,7 @@ export async function submitProposal(data: SubmissionData) {
       .from("proposal_submissions")
       .insert([
         {
-          candidate_name: data.candidate_name,
+          candidate_name: data.candidate_name || data.contact_info || "",
           contact_info: data.contact_info,
           selected_date: data.selected_date,
           selected_time: data.selected_time,
@@ -52,7 +51,7 @@ export async function submitProposal(data: SubmissionData) {
 
     if (tgToken && tgChatId) {
       try {
-        const text = `💖 *New Date Proposal Locked In!* 💖\n\n👤 *Candidate:* ${data.candidate_name}\n🗓️ *Date:* ${data.selected_date}\n⏰ *Time:* ${data.selected_time}\n📍 *Spot:* ${data.selected_restaurant}\n🍕 *Food:* ${data.selected_food}\n✨ *Archetype:* ${data.selected_archetype}\n📱 *Contact:* ${data.contact_info}\n\n_Sent from Uchrashuv App_ ✨`
+        const text = `💌 *NEW DATE REQUEST*\n\n📅 *Date:* ${data.selected_date}\n⏰ *Time:* ${data.selected_time}\n📍 *Spot:* ${data.selected_restaurant}\n🍽 *Food:* ${data.selected_food}\n✨ *Archetype:* ${data.selected_archetype}\n👤 *Username:* ${data.contact_info}\n\n_Sent from Uchrashuv App_ ✨`
         
         await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
           method: "POST",

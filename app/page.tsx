@@ -30,6 +30,7 @@ import { RestaurantStep } from "@/components/steps/restaurant-step"
 import { FoodStep } from "@/components/steps/food-step"
 import { PersonalityStep } from "@/components/steps/personality-step"
 import { SummaryStep } from "@/components/steps/summary-step"
+import { ContactStep } from "@/components/steps/contact-step"
 import { submitProposal, logAnalyticsEvent, getAnalyticsStats, type AnalyticsStats } from "@/app/actions"
 import { getSessionId } from "@/lib/analytics"
 import { getRandomRomanticText } from "@/lib/romantic-texts"
@@ -336,7 +337,7 @@ export default function Home() {
       
       const dataUrl = canvas.toDataURL("image/png")
       const link = document.createElement("a")
-      link.download = `Uchrashuv_${userName.replace(/\s+/g, "_") || "Vibe"}_Card.png`
+      link.download = `Uchrashuv_${contactHandle.replace(/[@\s]+/g, "_") || "Vibe"}_Card.png`
       link.href = dataUrl
       document.body.appendChild(link)
       link.click()
@@ -409,7 +410,7 @@ export default function Home() {
     
     try {
       const result = await submitProposal({
-        candidate_name: userName,
+        candidate_name: contactHandle,
         contact_info: contactHandle,
         selected_date: selectedDate,
         selected_time: selectedTime,
@@ -433,7 +434,7 @@ export default function Home() {
         
         localStorage.setItem("date-sparks-last-submit", Date.now().toString())
         playSparkle()
-        navigateTo(7) // Go to success step!
+        navigateTo(8) // Go to success step!
       } else {
         setSubmitError(result.error || "Failed to submit proposal.")
       }
@@ -487,6 +488,9 @@ export default function Home() {
           eventType = "selected_vibe"
           break
         case 7:
+          eventType = "reached_contact_step"
+          break
+        case 8:
           eventType = "submitted_proposal"
           break
       }
@@ -498,18 +502,6 @@ export default function Home() {
           const res = await logAnalyticsEvent(eventType, sessId)
           if (res.success) {
             sessionStorage.setItem(sessionKey, "true")
-          }
-        }
-
-        // Special case: Step 6 is both selected_vibe (completing step 5) and reached_contact_step!
-        if (flowStep === 6) {
-          const contactKey = `logged-event-reached_contact_step`
-          const hasLoggedContact = sessionStorage.getItem(contactKey)
-          if (!hasLoggedContact) {
-            const res = await logAnalyticsEvent("reached_contact_step", sessId)
-            if (res.success) {
-              sessionStorage.setItem(contactKey, "true")
-            }
           }
         }
       }
@@ -549,9 +541,9 @@ export default function Home() {
     }
   }, [activeTab])
 
-  // Preload html2canvas when entering the success step (Step 7) to avoid user activation context expiry
+  // Preload html2canvas when entering the success step (Step 8) to avoid user activation context expiry
   useEffect(() => {
-    if (flowStep === 7) {
+    if (flowStep === 8) {
       import("html2canvas").catch(() => {})
     }
   }, [flowStep])
@@ -563,6 +555,7 @@ export default function Home() {
     if (flowStep === 4) return "okay wait this vibe kinda works"
     if (flowStep === 5) return "calculating compatibility vibes... 💘"
     if (flowStep === 6) return "almost official. lock it in! 🔐"
+    if (flowStep === 7) return "only one final step left 😌"
 
     if (secondsElapsed < 10) return "pretending i'm calm rn 😭"
     if (secondsElapsed < 25) return `you've been here for ${secondsElapsed} seconds already 😌`
@@ -737,9 +730,9 @@ export default function Home() {
             </div>
           )}
           
-          {/* Progress bar displayed inside the flow container (Steps 1 to 6) */}
-          {activeTab === "match" && flowStep >= 1 && flowStep <= 6 && (
-            <ProgressIndicator currentStep={flowStep} totalSteps={6} />
+          {/* Progress bar displayed inside the flow container (Steps 1 to 7) */}
+          {activeTab === "match" && flowStep >= 1 && flowStep <= 7 && (
+            <ProgressIndicator currentStep={flowStep} totalSteps={7} />
           )}
 
           <div className="flex-1 flex flex-col mt-2">
@@ -898,19 +891,25 @@ export default function Home() {
                       restaurant={selectedRestaurant}
                       food={selectedFood}
                       personality={personalityResult}
-                      name={userName}
-                      contact={contactHandle}
-                      onNameChange={setUserName}
-                      onContactChange={setContactHandle}
-                      onSubmit={handleProposalSubmit}
+                      onNext={() => navigateTo(7)}
                       onBack={() => navigateTo(5)}
+                    />
+                  )}
+
+                  {/* STEP 7: CONTACT INPUT */}
+                  {flowStep === 7 && (
+                    <ContactStep
+                      selectedValue={contactHandle}
+                      onChange={setContactHandle}
+                      onSubmit={handleProposalSubmit}
+                      onBack={() => navigateTo(6)}
                       isSubmitting={isSubmitting}
                       submitError={submitError}
                     />
                   )}
 
-                  {/* STEP 7: SUCCESS CELEBRATION */}
-                  {flowStep === 7 && (
+                  {/* STEP 8: SUCCESS CELEBRATION */}
+                  {flowStep === 8 && (
                     <div className="w-full flex-1 flex flex-col justify-center min-h-[440px]">
                       <ConfettiExplosion />
                       <Card variant="glass" className="w-full flex-1 flex flex-col justify-between py-6 text-center border-primary/30 shadow-romantic-glow">
@@ -934,8 +933,8 @@ export default function Home() {
                           
                           <div className="p-4 rounded-xl bg-white/20 dark:bg-black/20 border-glass text-xs text-left flex flex-col gap-2 max-w-xs mx-auto w-full">
                             <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
-                              <span className="text-muted-foreground">Candidate:</span>
-                              <span className="font-bold">{userName}</span>
+                              <span className="text-muted-foreground">Username:</span>
+                              <span className="font-bold">{contactHandle}</span>
                             </div>
                             <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                               <span className="text-muted-foreground">Timeline:</span>
@@ -1303,7 +1302,7 @@ export default function Home() {
       {/* Hidden share card optimized for export */}
       <ShareCard
         ref={shareCardRef}
-        name={userName}
+        name={contactHandle}
         contact={contactHandle}
         date={selectedDate}
         time={selectedTime}

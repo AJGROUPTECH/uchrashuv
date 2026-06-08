@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Calendar, Clock, UtensilsCrossed, Pizza, Sparkles, FileCheck } from "lucide-react"
+import { Calendar, Clock, UtensilsCrossed, Pizza, Sparkles, Eye, FileCheck } from "lucide-react"
 
 interface ProgressIndicatorProps {
   currentStep: number
@@ -14,6 +14,7 @@ const stepIcons = [
   { icon: UtensilsCrossed, label: "Place" },
   { icon: Pizza, label: "Food" },
   { icon: Sparkles, label: "Vibe" },
+  { icon: Eye, label: "Review" },
   { icon: FileCheck, label: "Lock" },
 ]
 
