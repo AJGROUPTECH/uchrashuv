@@ -75,7 +75,22 @@ export async function submitProposal(data: SubmissionData) {
   }
 }
 
-export async function logAnalyticsEvent(eventType: "view" | "start_flow" | "submit", sessionId: string) {
+export async function logAnalyticsEvent(
+  eventType:
+    | "view"
+    | "start_flow"
+    | "submit"
+    | "landing_view"
+    | "clicked_yes"
+    | "selected_date"
+    | "selected_time"
+    | "selected_restaurant"
+    | "selected_food"
+    | "selected_vibe"
+    | "reached_contact_step"
+    | "submitted_proposal",
+  sessionId: string
+) {
   if (!sessionId) return { success: false, error: "Invalid session ID" }
 
   try {

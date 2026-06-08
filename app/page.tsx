@@ -421,6 +421,16 @@ export default function Home() {
       if (result.success) {
         const sessId = getSessionId()
         await logAnalyticsEvent("submit", sessId)
+        
+        // Step funnel submit logging (Feature 1)
+        const hasLoggedSubmit = sessionStorage.getItem("logged-event-submitted_proposal")
+        if (!hasLoggedSubmit) {
+          const res = await logAnalyticsEvent("submitted_proposal", sessId)
+          if (res.success) {
+            sessionStorage.setItem("logged-event-submitted_proposal", "true")
+          }
+        }
+        
         localStorage.setItem("date-sparks-last-submit", Date.now().toString())
         playSparkle()
         navigateTo(7) // Go to success step!
@@ -443,6 +453,70 @@ export default function Home() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Step-level analytics funnel tracking (Feature 1)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const trackStep = async () => {
+      const sessId = getSessionId()
+      if (!sessId) return
+
+      let eventType: "landing_view" | "clicked_yes" | "selected_date" | "selected_time" | "selected_restaurant" | "selected_food" | "selected_vibe" | "reached_contact_step" | "submitted_proposal" | null = null
+
+      switch (flowStep) {
+        case 0:
+          eventType = "landing_view"
+          break
+        case 1:
+          eventType = "clicked_yes"
+          break
+        case 2:
+          eventType = "selected_date"
+          break
+        case 3:
+          eventType = "selected_time"
+          break
+        case 4:
+          eventType = "selected_restaurant"
+          break
+        case 5:
+          eventType = "selected_food"
+          break
+        case 6:
+          eventType = "selected_vibe"
+          break
+        case 7:
+          eventType = "submitted_proposal"
+          break
+      }
+
+      if (eventType) {
+        const sessionKey = `logged-event-${eventType}`
+        const hasLogged = sessionStorage.getItem(sessionKey)
+        if (!hasLogged) {
+          const res = await logAnalyticsEvent(eventType, sessId)
+          if (res.success) {
+            sessionStorage.setItem(sessionKey, "true")
+          }
+        }
+
+        // Special case: Step 6 is both selected_vibe (completing step 5) and reached_contact_step!
+        if (flowStep === 6) {
+          const contactKey = `logged-event-reached_contact_step`
+          const hasLoggedContact = sessionStorage.getItem(contactKey)
+          if (!hasLoggedContact) {
+            const res = await logAnalyticsEvent("reached_contact_step", sessId)
+            if (res.success) {
+              sessionStorage.setItem(contactKey, "true")
+            }
+          }
+        }
+      }
+    }
+
+    trackStep()
+  }, [flowStep])
 
   // Rotate thought banner messages on step changes (Feature 3)
   useEffect(() => {
