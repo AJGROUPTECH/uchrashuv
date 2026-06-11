@@ -187,3 +187,182 @@ export async function getAnalyticsStats() {
   }
 }
 
+export async function createInvitation() {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+  let code = ""
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+
+  try {
+    const { error } = await supabase
+      .from("invitations")
+      .insert([{ invitation_code: code }])
+
+    if (error) {
+      console.error("Supabase error creating invitation:", error)
+      return { success: false, error: error.message }
+    }
+
+    // Admin Telegram Notification (Analytics only)
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN
+    const tgChatId = process.env.TELEGRAM_CHAT_ID
+    if (tgToken && tgChatId) {
+      try {
+        const text = `🎉 *New invitation created*\n\n🔑 *Code:* \`${code}\`\n\n_Sent from Uchrashuv App_ ✨`
+        await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: tgChatId,
+            text: text,
+            parse_mode: "Markdown",
+          }),
+        })
+      } catch (tgErr) {
+        console.error("Failed to send Telegram notification:", tgErr)
+      }
+    }
+
+    return { success: true, code }
+  } catch (err: any) {
+    console.error("createInvitation exception:", err)
+    return { success: false, error: err?.message || "Failed to create invitation." }
+  }
+}
+
+export interface InvitationResponseData {
+  invitation_code: string
+  selected_date: string
+  selected_time: string
+  selected_restaurant: string
+  selected_food: string
+  selected_archetype: string
+  contact_username: string
+}
+
+export async function submitInvitationResponse(data: InvitationResponseData) {
+  if (
+    !data.invitation_code ||
+    !data.selected_date ||
+    !data.selected_time ||
+    !data.selected_restaurant ||
+    !data.selected_food ||
+    !data.selected_archetype ||
+    !data.contact_username.trim()
+  ) {
+    return { success: false, error: "Please complete all selections and enter your username! 🥺" }
+  }
+
+  try {
+    const { error } = await supabase
+      .from("invitation_responses")
+      .insert([
+        {
+          invitation_code: data.invitation_code,
+          selected_date: data.selected_date,
+          selected_time: data.selected_time,
+          selected_restaurant: data.selected_restaurant,
+          selected_food: data.selected_food,
+          selected_archetype: data.selected_archetype,
+          contact_username: data.contact_username,
+        },
+      ])
+
+    if (error) {
+      if (error.code === "23505") {
+        return { success: false, error: "This invitation has already been accepted! 🥺" }
+      }
+      console.error("Supabase error submitting invitation response:", error)
+      return { success: false, error: error.message }
+    }
+
+    // Fetch stats for Admin Telegram Bot notification
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN
+    const tgChatId = process.env.TELEGRAM_CHAT_ID
+
+    if (tgToken && tgChatId) {
+      try {
+        const todayStr = new Date().toISOString().split("T")[0]
+
+        // Get completed count today
+        const { count: submitsToday } = await supabase
+          .from("invitation_responses")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", `${todayStr}T00:00:00Z`)
+
+        // Get created count today
+        const { count: invitesToday } = await supabase
+          .from("invitations")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", `${todayStr}T00:00:00Z`)
+
+        let totalSubmits = submitsToday || 0
+        let totalInvites = invitesToday || 1
+        if (totalInvites < totalSubmits) totalInvites = totalSubmits
+
+        const rate = ((totalSubmits / totalInvites) * 100).toFixed(1)
+
+        const text = `📨 *New invitation completed*\n\n📊 *Total submissions today:* ${totalSubmits}\n📈 *Conversion rate:* ${rate}%\n\n_Sent from Uchrashuv App_ ✨`
+        await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: tgChatId,
+            text: text,
+            parse_mode: "Markdown",
+          }),
+        })
+      } catch (tgErr) {
+        console.error("Failed to compile stats / notify Telegram:", tgErr)
+      }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error("submitInvitationResponse exception:", err)
+    return { success: false, error: err?.message || "Failed to submit response." }
+  }
+}
+
+export async function getInvitationResponse(code: string) {
+  if (!code) return { success: false, error: "Missing invitation code" }
+
+  try {
+    const { data: responseData, error: responseError } = await supabase
+      .from("invitation_responses")
+      .select("*")
+      .eq("invitation_code", code)
+      .maybeSingle()
+
+    if (responseError) {
+      console.error("Supabase error checking invitation response:", responseError)
+      return { success: false, error: responseError.message }
+    }
+
+    if (responseData) {
+      return { success: true, exists: true, data: responseData }
+    }
+
+    const { data: inviteData, error: inviteError } = await supabase
+      .from("invitations")
+      .select("*")
+      .eq("invitation_code", code)
+      .maybeSingle()
+
+    if (inviteError) {
+      console.error("Supabase error checking invitation code:", inviteError)
+      return { success: false, error: inviteError.message }
+    }
+
+    if (inviteData) {
+      return { success: true, exists: false, message: "pending" }
+    } else {
+      return { success: false, error: "Invalid invitation code." }
+    }
+  } catch (err: any) {
+    console.error("getInvitationResponse exception:", err)
+    return { success: false, error: err?.message || "Failed to check invitation status." }
+  }
+}
+

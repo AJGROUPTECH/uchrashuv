@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Heart, 
@@ -11,83 +12,28 @@ import {
   Layers, 
   Check, 
   HeartHandshake,
-  Calendar,
-  Utensils,
-  Smile,
-  Send,
   RefreshCw,
   Volume2,
-  VolumeX
+  VolumeX,
+  Copy,
+  Share2,
+  BarChart3,
+  AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ProgressIndicator } from "@/components/progress-indicator"
-
-// Step Components
-import { DateStep } from "@/components/steps/date-step"
-import { TimeStep } from "@/components/steps/time-step"
-import { RestaurantStep } from "@/components/steps/restaurant-step"
-import { FoodStep } from "@/components/steps/food-step"
-import { PersonalityStep } from "@/components/steps/personality-step"
-import { SummaryStep } from "@/components/steps/summary-step"
-import { ContactStep } from "@/components/steps/contact-step"
-import { submitProposal, logAnalyticsEvent, getAnalyticsStats, type AnalyticsStats } from "@/app/actions"
+import { createInvitation, logAnalyticsEvent, getAnalyticsStats, type AnalyticsStats } from "@/app/actions"
 import { getSessionId } from "@/lib/analytics"
 import { getRandomRomanticText } from "@/lib/romantic-texts"
-import { ShareCard } from "@/components/share-card"
 import { 
   initAudio, 
   setMutedState, 
   getMutedState, 
   playSoftClick, 
-  playHoverPop, 
-  playSwoosh, 
-  playSparkle, 
-  playNoEscape, 
-  playCameraShutter 
+  playSparkle
 } from "@/lib/audio"
 
-const tooltips = [
-  "nice try 😭",
-  "bro give up",
-  "not happening 😌",
-  "try again 😜",
-  "impossible 💅",
-  "error 404: click YES",
-  "database says no 💻",
-  "nice hover speed 🏃‍♂️",
-  "clown behavior 🤡",
-  "no is disabled 🚫",
-]
-
-// Custom directional swiping variants for Framer Motion (speed optimized to reduce INP delay)
-const slideVariants = {
-  enter: (direction: "forward" | "backward") => ({
-    opacity: 0,
-    x: direction === "forward" ? 40 : -40,
-    scale: 0.98,
-  }),
-  center: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    transition: {
-      duration: 0.22,
-      ease: [0.25, 1, 0.5, 1] as [number, number, number, number], // Snappy easeOut
-    },
-  },
-  exit: (direction: "forward" | "backward") => ({
-    opacity: 0,
-    x: direction === "forward" ? -40 : 40,
-    scale: 0.98,
-    transition: {
-      duration: 0.15,
-      ease: [0.25, 1, 0.5, 1] as [number, number, number, number],
-    },
-  }),
-}
-
-// Pre-configured static arrays to prevent CPU thrashing/re-renders caused by inline Math.random()
+// Pre-configured static arrays to prevent CPU thrashing/re-renders
 const bgParticles = [
   { width: 220, height: 250, left: "10%", top: "15%", duration: 15, delay: 0, yOffset: -50 },
   { width: 180, height: 210, left: "75%", top: "45%", duration: 18, delay: 2, yOffset: -30 },
@@ -110,6 +56,32 @@ const floatingHeartParticles = [
   { left: "90%", delay: 2.5, size: 14, duration: 9, yOffset: -135, xOffset: -15 }
 ]
 
+const slideVariants = {
+  enter: (direction: "forward" | "backward") => ({
+    opacity: 0,
+    x: direction === "forward" ? 40 : -40,
+    scale: 0.98,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.22,
+      ease: [0.25, 1, 0.5, 1] as [number, number, number, number],
+    },
+  },
+  exit: (direction: "forward" | "backward") => ({
+    opacity: 0,
+    x: direction === "forward" ? -40 : 40,
+    scale: 0.98,
+    transition: {
+      duration: 0.15,
+      ease: [0.25, 1, 0.5, 1] as [number, number, number, number],
+    },
+  }),
+}
+
 function ConfettiExplosion() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -120,15 +92,13 @@ function ConfettiExplosion() {
     if (!ctx) return
 
     let animationFrameId: number
-    
-    // Resize
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
 
     const colors = ["#ff4b82", "#ff85a1", "#fbb6ce", "#fbd38d", "#f6ad55"]
     const particles = Array.from({ length: 85 }).map(() => ({
       x: canvas.width / 2,
-      y: canvas.height * 0.42, // Center of phone mockup
+      y: canvas.height * 0.42,
       vx: (Math.random() - 0.5) * 14,
       vy: (Math.random() - 0.75) * 16 - 6,
       size: Math.random() * 7 + 4,
@@ -140,12 +110,10 @@ function ConfettiExplosion() {
 
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-
       let active = false
       particles.forEach((p) => {
         if (p.opacity <= 0) return
         active = true
-
         ctx.save()
         ctx.translate(p.x, p.y)
         ctx.rotate((p.rotation * Math.PI) / 180)
@@ -153,93 +121,36 @@ function ConfettiExplosion() {
         ctx.globalAlpha = p.opacity
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
         ctx.restore()
-
-        // Physics
         p.x += p.vx
         p.y += p.vy
-        p.vy += 0.35 // Gravity
-        p.vx *= 0.985 // Friction
+        p.vy += 0.35
+        p.vx *= 0.985
         p.rotation += p.rotationSpeed
-        p.opacity -= 0.012 // Fade out
+        p.opacity -= 0.012
       })
-
       if (active) {
         animationFrameId = requestAnimationFrame(render)
       }
     }
 
     render()
-
-    return () => {
-      cancelAnimationFrame(animationFrameId)
-    }
+    return () => cancelAnimationFrame(animationFrameId)
   }, [])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-50 w-full h-full"
-    />
-  )
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50 w-full h-full" />
 }
 
 export default function Home() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<"match" | "uikit">("match")
   const [isDark, setIsDark] = useState(false)
   const [isAudioMuted, setIsAudioMuted] = useState(false)
-  
-  // Initialize audio preference & log view event & init thought pool text
-  useEffect(() => {
-    initAudio()
-    setIsAudioMuted(getMutedState())
-    setFloatingText(getRandomRomanticText())
 
-    // Log website view once per session
-    const logViewEvent = async () => {
-      if (typeof window === "undefined") return
-      const sessId = getSessionId()
-      const hasLoggedView = sessionStorage.getItem("date-sparks-logged-view")
-      if (!hasLoggedView) {
-        const result = await logAnalyticsEvent("view", sessId)
-        if (result.success) {
-          sessionStorage.setItem("date-sparks-logged-view", "true")
-        }
-      }
-    }
-    logViewEvent()
-  }, [])
-
-  const toggleMute = () => {
-    const nextMuted = !isAudioMuted
-    setIsAudioMuted(nextMuted)
-    setMutedState(nextMuted)
-    // Small feedback chirp right after unmuting
-    if (!nextMuted) {
-      setTimeout(() => playSoftClick(), 60)
-    }
-  }
-  
-  // Navigation flow state: 0 = proposal, 1 = date, 2 = time, 3 = spot, 4 = food, 5 = personality, 6 = summary, 7 = success
-  const [flowStep, setFlowStep] = useState(0)
-  const [direction, setDirection] = useState<"forward" | "backward">("forward")
-  
-  // Proposal Game State
-  const [noCount, setNoCount] = useState(0)
-  const [noButtonPos, setNoButtonPos] = useState({ x: 60, y: 0 })
-  
-  // Form selections state (persistent across steps)
-  const [selectedDate, setSelectedDate] = useState<string>("")
-  const [selectedTime, setSelectedTime] = useState<string>("")
-  const [selectedRestaurant, setSelectedRestaurant] = useState<string>("")
-  const [selectedFood, setSelectedFood] = useState<string>("")
-  const [personalityResult, setPersonalityResult] = useState<string>("")
-  
-  // Contacts
-  const [userName, setUserName] = useState("")
-  const [contactHandle, setContactHandle] = useState("")
-  
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState("")
+  // Invitation creation states
+  const [createdCode, setCreatedCode] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [createError, setCreateError] = useState("")
+  const [showConfetti, setShowConfetti] = useState(false)
 
   // Dynamic romantic thought system state
   const [floatingText, setFloatingText] = useState("")
@@ -248,7 +159,6 @@ export default function Home() {
   const [adminStats, setAdminStats] = useState<AnalyticsStats | null>(null)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [statsError, setStatsError] = useState("")
-
 
   // Click heart explosion particles state & handler
   const [clickHearts, setClickHearts] = useState<{ id: number; x: number; y: number; size: number; delay: number }[]>([])
@@ -269,19 +179,12 @@ export default function Home() {
   const [showToast, setShowToast] = useState(false)
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const triggerSuccessToast = () => {
-    const messages = [
-      "✨ ready for the story post",
-      "📸 copied to camera roll energy",
-      "👀 story post pending..."
-    ]
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)]
-    
+  const triggerSuccessToast = (msg: string) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current)
     }
     
-    setToastMessage(randomMsg)
+    setToastMessage(msg)
     setShowToast(true)
     
     toastTimeoutRef.current = setTimeout(() => {
@@ -289,235 +192,114 @@ export default function Home() {
     }, 3000)
   }
 
+  // Initialize theme & sound settings
   useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    initAudio()
+    setIsAudioMuted(getMutedState())
+    setFloatingText(getRandomRomanticText())
+
+    // Log website view once per session
+    const logViewEvent = async () => {
+      if (typeof window === "undefined") return
+      const sessId = getSessionId()
+      const hasLoggedView = sessionStorage.getItem("date-sparks-logged-view")
+      if (!hasLoggedView) {
+        const result = await logAnalyticsEvent("view", sessId)
+        if (result.success) {
+          sessionStorage.setItem("date-sparks-logged-view", "true")
+        }
+      }
     }
+    logViewEvent()
+
+    const isDarkTheme = document.documentElement.classList.contains("dark")
+    setIsDark(isDarkTheme)
   }, [])
 
-  // Successful selections sound moments
-  useEffect(() => {
-    if (selectedDate) playHoverPop()
-  }, [selectedDate])
-
-  useEffect(() => {
-    if (selectedTime) playHoverPop()
-  }, [selectedTime])
-
-  useEffect(() => {
-    if (selectedRestaurant) playHoverPop()
-  }, [selectedRestaurant])
-
-  useEffect(() => {
-    if (selectedFood) playHoverPop()
-  }, [selectedFood])
-
-  // Save Vibe Card export states
-  const shareCardRef = useRef<HTMLDivElement>(null)
-  const [isGeneratingCard, setIsGeneratingCard] = useState(false)
-  const [generatingStatus, setGeneratingStatus] = useState("")
-  const [copyFeedback, setCopyFeedback] = useState(false)
-
-  const handleSaveImage = async () => {
-    if (!shareCardRef.current) return
-    setIsGeneratingCard(true)
-    setGeneratingStatus("creating your vibe card... 💫")
-    
-    // Slight artificial delay for smooth experience
-    await new Promise((resolve) => setTimeout(resolve, 850))
-    
-    try {
-      const html2canvas = (await import("html2canvas")).default
-      const canvas = await html2canvas(shareCardRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      })
-      
-      const dataUrl = canvas.toDataURL("image/png")
-      const link = document.createElement("a")
-      link.download = `Uchrashuv_${contactHandle.replace(/[@\s]+/g, "_") || "Vibe"}_Card.png`
-      link.href = dataUrl
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      playCameraShutter()
-      triggerSuccessToast()
-    } catch (err) {
-      console.error("Failed to generate card image:", err)
-      alert("Oops! Failed to save image. Please try again! 😭")
-    } finally {
-      setIsGeneratingCard(false)
+  const toggleMute = () => {
+    const nextMuted = !isAudioMuted
+    setIsAudioMuted(nextMuted)
+    setMutedState(nextMuted)
+    if (!nextMuted) {
+      setTimeout(() => playSoftClick(), 60)
     }
   }
 
-  const handleCopyImage = async () => {
-    if (!shareCardRef.current) return
-    setIsGeneratingCard(true)
-    setGeneratingStatus("creating your vibe card... 💫")
-    
-    try {
-      const html2canvas = (await import("html2canvas")).default
-      
-      // Promise-based clipboard write (retains user gesture context)
-      const blobPromise = new Promise<Blob>(async (resolve, reject) => {
-        try {
-          const canvas = await html2canvas(shareCardRef.current!, {
-            scale: 3,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: null,
-          })
-          canvas.toBlob((b) => {
-            if (b) resolve(b)
-            else reject(new Error("Canvas toBlob failed"))
-          }, "image/png")
-        } catch (err) {
-          reject(err)
-        }
-      })
-      
-      const clipboardItem = new ClipboardItem({
-        "image/png": blobPromise
-      })
-      
-      await navigator.clipboard.write([clipboardItem])
-      
-      playCameraShutter()
-      triggerSuccessToast()
-      setCopyFeedback(true)
-      setTimeout(() => setCopyFeedback(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy card image:", err)
-      alert("Oops! Failed to copy image. Please use Save Image instead! 💖")
-    } finally {
-      setIsGeneratingCard(false)
-    }
-  }
-
-  const handleShareTelegram = () => {
+  const toggleTheme = () => {
     playSoftClick()
-    const day = selectedDate ? selectedDate.split("-")[2] : "12"
-    const text = `Check out our Uchrashuv Vibe Card! 📸 Locked in for June ${day} at ${selectedTime || "7:00 PM"}. Spot: ${selectedRestaurant || "ARROWS & SPARROWS"}. Food: ${selectedFood || "Truffle Pizza"}. Archetype: ${personalityResult || "Fine Dining Romanticist 🌹"} 💌`
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`
-    window.open(shareUrl, "_blank")
+    const nextDark = !isDark
+    setIsDark(nextDark)
+    if (nextDark) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
   }
 
-  const handleProposalSubmit = async () => {
-    setIsSubmitting(true)
-    setSubmitError("")
-    
+  // Handle invitation creation
+  const handleCreateInvitation = async () => {
+    setIsCreating(true)
+    setCreateError("")
+    playSoftClick()
+
     try {
-      const result = await submitProposal({
-        candidate_name: contactHandle,
-        contact_info: contactHandle,
-        selected_date: selectedDate,
-        selected_time: selectedTime,
-        selected_restaurant: selectedRestaurant,
-        selected_food: selectedFood,
-        selected_archetype: personalityResult,
-      })
-      
-      if (result.success) {
-        const sessId = getSessionId()
-        await logAnalyticsEvent("submit", sessId)
-        
-        // Step funnel submit logging (Feature 1)
-        const hasLoggedSubmit = sessionStorage.getItem("logged-event-submitted_proposal")
-        if (!hasLoggedSubmit) {
-          const res = await logAnalyticsEvent("submitted_proposal", sessId)
-          if (res.success) {
-            sessionStorage.setItem("logged-event-submitted_proposal", "true")
-          }
-        }
-        
-        localStorage.setItem("date-sparks-last-submit", Date.now().toString())
+      const res = await createInvitation()
+      if (res.success && res.code) {
+        setCreatedCode(res.code)
+        setShowConfetti(true)
         playSparkle()
-        navigateTo(8) // Go to success step!
       } else {
-        setSubmitError(result.error || "Failed to submit proposal.")
+        setCreateError(res.error || "Failed to create invitation.")
       }
     } catch (err: any) {
-      setSubmitError("Network connection error. Try again! 😭")
+      setCreateError("Connection error. Please try again! 😭")
     } finally {
-      setIsSubmitting(false)
+      setIsCreating(false)
     }
   }
 
-  const [secondsElapsed, setSecondsElapsed] = useState(0)
+  const handleCopyLink = () => {
+    if (!createdCode) return
+    playSoftClick()
+    const url = `${window.location.origin}/invite/${createdCode}`
+    navigator.clipboard.writeText(url)
+    triggerSuccessToast("Invitation link copied! 📋")
+  }
 
-  // Track page time
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsElapsed((prev) => prev + 1)
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  // Step-level analytics funnel tracking (Feature 1)
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const trackStep = async () => {
-      const sessId = getSessionId()
-      if (!sessId) return
-
-      let eventType: "landing_view" | "clicked_yes" | "selected_date" | "selected_time" | "selected_restaurant" | "selected_food" | "selected_vibe" | "reached_contact_step" | "submitted_proposal" | null = null
-
-      switch (flowStep) {
-        case 0:
-          eventType = "landing_view"
-          break
-        case 1:
-          eventType = "clicked_yes"
-          break
-        case 2:
-          eventType = "selected_date"
-          break
-        case 3:
-          eventType = "selected_time"
-          break
-        case 4:
-          eventType = "selected_restaurant"
-          break
-        case 5:
-          eventType = "selected_food"
-          break
-        case 6:
-          eventType = "selected_vibe"
-          break
-        case 7:
-          eventType = "reached_contact_step"
-          break
-        case 8:
-          eventType = "submitted_proposal"
-          break
+  const handleShareLink = async () => {
+    if (!createdCode) return
+    playSoftClick()
+    const url = `${window.location.origin}/invite/${createdCode}`
+    const text = "Plan the perfect date with me! 💌 Fill out your selections here:"
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Date Invitation",
+          text: text,
+          url: url,
+        })
+        triggerSuccessToast("Shared successfully! 🔗")
+      } catch (err) {
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+        window.open(shareUrl, "_blank")
       }
-
-      if (eventType) {
-        const sessionKey = `logged-event-${eventType}`
-        const hasLogged = sessionStorage.getItem(sessionKey)
-        if (!hasLogged) {
-          const res = await logAnalyticsEvent(eventType, sessId)
-          if (res.success) {
-            sessionStorage.setItem(sessionKey, "true")
-          }
-        }
-      }
+    } else {
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+      window.open(shareUrl, "_blank")
     }
+  }
 
-    trackStep()
-  }, [flowStep])
-
-  // Rotate thought banner messages on step changes (Feature 3)
+  // Rotate thought banner messages
   useEffect(() => {
-    if (flowStep > 0) {
-      setFloatingText((prev) => getRandomRomanticText(prev))
+    if (createdCode) {
+      setFloatingText("your special link is ready... 💘")
+    } else {
+      setFloatingText(getRandomRomanticText())
     }
-  }, [flowStep])
+  }, [createdCode])
 
-  // Fetch admin dashboard stats when activeTab is 'uikit' (Feature 1)
+  // Fetch admin dashboard stats
   const fetchStats = async () => {
     setIsLoadingStats(true)
     setStatsError("")
@@ -541,110 +323,20 @@ export default function Home() {
     }
   }, [activeTab])
 
-  // Preload html2canvas when entering the success step (Step 8) to avoid user activation context expiry
-  useEffect(() => {
-    if (flowStep === 8) {
-      import("html2canvas").catch(() => {})
-    }
-  }, [flowStep])
-
-  const getPlayfulTimeMessage = () => {
-    if (flowStep === 1) return "lowkey hoping you pick a weekend 🤭"
-    if (flowStep === 2) return "lowkey hoping you pick dinner 😌"
-    if (flowStep === 3) return "this is getting suspiciously cute"
-    if (flowStep === 4) return "okay wait this vibe kinda works"
-    if (flowStep === 5) return "calculating compatibility vibes... 💘"
-    if (flowStep === 6) return "almost official. lock it in! 🔐"
-    if (flowStep === 7) return "only one final step left 😌"
-
-    if (secondsElapsed < 10) return "pretending i'm calm rn 😭"
-    if (secondsElapsed < 25) return `you've been here for ${secondsElapsed} seconds already 😌`
-    if (secondsElapsed < 40) return "lowkey hoping you pick June or Yakamoz 🌸"
-    if (secondsElapsed < 55) return "still planning? i'm already picking an outfit 💅"
-    if (secondsElapsed < 75) return `${secondsElapsed}s in... are we dating yet? 🥺`
-    return "at this rate, our grandkids will plan faster 💀"
-  }
-
-  // Initialize theme
-  useEffect(() => {
-    const isDarkTheme = document.documentElement.classList.contains("dark")
-    setIsDark(isDarkTheme)
-  }, [])
-
-  const toggleTheme = () => {
-    playSoftClick()
-    const nextDark = !isDark
-    setIsDark(nextDark)
-    if (nextDark) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-  }
-
-  // Escaping "No" button math (relative to container center)
-  const handleNoHover = () => {
-    playNoEscape()
-    const rangeX = 125 
-    const rangeY = 110 
-    
-    let newX = (Math.random() - 0.5) * 2 * rangeX
-    let newY = (Math.random() - 0.5) * 2 * rangeY
-    
-    if (Math.abs(newX - noButtonPos.x) < 35) {
-      newX = newX < 0 ? newX - 35 : newX + 35
-    }
-    if (Math.abs(newY - noButtonPos.y) < 35) {
-      newY = newY < 0 ? newY - 35 : newY + 35
-    }
-    
-    setNoButtonPos({ x: newX, y: newY })
-    setNoCount(prev => prev + 1)
-  }
-
-  const navigateTo = (nextStep: number) => {
-    playSwoosh()
-    setDirection(nextStep > flowStep ? "forward" : "backward")
-    setFlowStep(nextStep)
-  }
-
-  const handleYesClick = async () => {
-    navigateTo(1)
-    if (typeof window !== "undefined") {
-      const sessId = getSessionId()
-      const hasLoggedStart = sessionStorage.getItem("date-sparks-logged-start")
-      if (!hasLoggedStart) {
-        const result = await logAnalyticsEvent("start_flow", sessId)
-        if (result.success) {
-          sessionStorage.setItem("date-sparks-logged-start", "true")
-        }
-      }
-    }
-  }
-
-  const resetAll = () => {
-    playSoftClick()
-    setDirection("backward")
-    setFlowStep(0)
-    setNoCount(0)
-    setNoButtonPos({ x: 60, y: 0 })
-    setSelectedDate("")
-    setSelectedTime("")
-    setSelectedRestaurant("")
-    setSelectedFood("")
-    setPersonalityResult("")
-    setUserName("")
-    setContactHandle("")
-  }
+  const inviteUrl = createdCode && typeof window !== "undefined" 
+    ? `${window.location.origin}/invite/${createdCode}` 
+    : ""
 
   return (
     <div 
       onClick={handleGlobalClick}
       className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden bg-romantic-mesh transition-colors duration-500 cursor-default"
     >
-      
+      {/* Confetti Explosion */}
+      {showConfetti && <ConfettiExplosion />}
+
       {/* Ambient background particles */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
         {bgParticles.map((particle, idx) => (
           <div
             key={`bg-particle-${idx}`}
@@ -704,11 +396,11 @@ export default function Home() {
         </div>
 
         {/* Content Wrapper */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 z-20 flex flex-col pb-20 scrollbar-none">
+        <div className="flex-1 overflow-y-auto px-4 py-4 z-20 flex flex-col pb-20 scrollbar-none justify-center">
           
-          {/* Playful Floating Thought Banner (Feature 3) */}
-          {activeTab === "match" && flowStep <= 6 && (
-            <div className="h-8 flex items-center justify-center mb-2 select-none overflow-hidden">
+          {/* Playful Floating Thought Banner */}
+          {activeTab === "match" && (
+            <div className="h-8 flex items-center justify-center mb-2 select-none overflow-hidden shrink-0">
               <AnimatePresence mode="wait">
                 {floatingText && (
                   <motion.div
@@ -729,278 +421,129 @@ export default function Home() {
               </AnimatePresence>
             </div>
           )}
-          
-          {/* Progress bar displayed inside the flow container (Steps 1 to 7) */}
-          {activeTab === "match" && flowStep >= 1 && flowStep <= 7 && (
-            <ProgressIndicator currentStep={flowStep} totalSteps={7} />
-          )}
 
-          <div className="flex-1 flex flex-col mt-2">
-            <AnimatePresence mode="wait" custom={direction}>
+          <div className="flex-1 flex flex-col mt-2 min-h-0 justify-center">
+            <AnimatePresence mode="wait">
               {activeTab === "match" ? (
                 <motion.div
-                  key={`flow-step-${flowStep}`}
-                  custom={direction}
+                  key={createdCode ? "invitation-ready" : "create-invitation"}
                   variants={slideVariants}
                   initial="enter"
                   animate="center"
                   exit="exit"
                   style={{ willChange: "transform, opacity" }}
-                  className="flex-1 flex flex-col"
+                  className="flex-1 flex flex-col justify-center"
                 >
-                  
-                  {/* STEP 0: PROPOSAL */}
-                  {flowStep === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center min-h-[440px]">
-                      <Card variant="glass" className="w-full flex-1 flex flex-col justify-between py-6">
-                        <CardHeader className="text-center pb-2">
-                          <div className="mx-auto size-16 bg-primary/10 rounded-full flex items-center justify-center mb-3 animate-heartbeat">
-                            <Heart className="size-9 text-primary fill-primary" />
+                  {!createdCode ? (
+                    /* CREATE INVITATION SCREEN */
+                    <Card variant="glass" className="w-full py-6 flex flex-col justify-between min-h-[380px]">
+                      <CardHeader className="text-center pb-2">
+                        <div className="mx-auto size-16 bg-primary/10 rounded-full flex items-center justify-center mb-3 animate-heartbeat">
+                          <Heart className="size-9 text-primary fill-primary" />
+                        </div>
+                        <CardTitle className="text-2xl font-black tracking-tight leading-snug">
+                          Plan a Date Together ✨
+                        </CardTitle>
+                        <CardDescription className="text-xs font-semibold dark:text-rose-300/60 mt-1">
+                          Lightweight, fun and frictionless
+                        </CardDescription>
+                      </CardHeader>
+                      
+                      <CardContent className="py-4 text-center flex-1 flex items-center justify-center">
+                        <p className="text-xs font-semibold text-foreground/80 leading-relaxed max-w-xs px-2">
+                          Create an invitation link and send it to your partner or crush. They will plan the date details, and you'll get a custom compatibility archetype card!
+                        </p>
+                      </CardContent>
+
+                      <CardFooter className="flex flex-col gap-3 pt-4 border-t-0">
+                        <Button
+                          variant="romantic"
+                          className="w-full font-black text-xs uppercase tracking-wider py-5 rounded-xl shadow-romantic-glow cursor-pointer"
+                          disabled={isCreating}
+                          onClick={handleCreateInvitation}
+                        >
+                          {isCreating ? (
+                            <>
+                              <RefreshCw className="size-4 animate-spin mr-2" /> Generating Link...
+                            </>
+                          ) : (
+                            <>Create Date Invitation ✨</>
+                          )}
+                        </Button>
+
+                        {createError && (
+                          <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-[10px] font-bold text-destructive flex items-center gap-1.5 w-full justify-center">
+                            <AlertCircle className="size-3.5" /> {createError}
                           </div>
-                          <CardTitle className="text-2xl font-black tracking-tight leading-snug">
-                            Will you go on a date with me? ❤️
-                          </CardTitle>
-                          <CardDescription className="text-xs font-semibold dark:text-rose-300/60">
-                            Answer carefully... 🤫
-                          </CardDescription>
-                        </CardHeader>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  ) : (
+                    /* INVITATION READY SCREEN */
+                    <Card variant="glass" className="w-full py-6 flex flex-col justify-between min-h-[420px]">
+                      <CardHeader className="text-center pb-2">
+                        <div className="mx-auto size-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-3">
+                          <Check className="size-9 text-emerald-500" />
+                        </div>
+                        <CardTitle className="text-2xl font-black text-gradient-romantic tracking-wide">
+                          💌 Your invitation is ready
+                        </CardTitle>
+                        <CardDescription className="text-xs font-semibold text-primary/80 dark:text-rose-200/80 mt-1">
+                          Share the link to lock in the plan!
+                        </CardDescription>
+                      </CardHeader>
+                      
+                      <CardContent className="py-4 flex flex-col gap-4">
+                        <div className="p-3.5 rounded-2xl bg-white/10 dark:bg-black/20 border-glass text-xs flex flex-col gap-2 relative">
+                          <span className="text-[8px] font-black uppercase text-primary tracking-widest text-left block">
+                            Invitation Link:
+                          </span>
+                          <div className="flex items-center gap-1 bg-white/10 dark:bg-black/25 p-2 rounded-xl border border-foreground/5 min-w-0">
+                            <span className="text-[10px] font-bold truncate flex-1 select-all text-left text-foreground">
+                              {inviteUrl}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="flex flex-col gap-2.5 pt-2 border-t-0">
+                        <Button
+                          variant="romantic"
+                          className="w-full gap-2 font-black text-xs uppercase tracking-wider py-4 rounded-xl shadow-romantic-glow cursor-pointer"
+                          onClick={handleCopyLink}
+                        >
+                          <Copy className="size-3.5" /> Copy Link
+                        </Button>
                         
-                        <CardContent className="flex-1 flex flex-col items-center justify-center py-4 text-center">
-                          <p className="text-sm font-medium text-foreground/80 leading-relaxed max-w-xs px-2">
-                            I promise it will be filled with good food, premium laughs, and zero awkward silences.
-                          </p>
-                        </CardContent>
+                        <Button
+                          variant="glass"
+                          className="w-full gap-2 font-semibold text-xs border-primary/20 text-primary py-4 rounded-xl hover:bg-foreground/5 transition-colors cursor-pointer"
+                          onClick={handleShareLink}
+                        >
+                          <Share2 className="size-3.5" /> Share Link
+                        </Button>
 
-                        <CardFooter className="flex flex-col pt-4 border-t-0">
-                          {/* Interactive escaping button wrapper */}
-                          <div className="relative w-full h-[220px] flex items-center justify-center border-glass rounded-xl bg-black/5 dark:bg-white/5 overflow-hidden">
-                            
-                            {/* YES Button */}
-                            <motion.div
-                              style={{ x: -60, y: 0 }}
-                              animate={{ scale: Math.min(1 + noCount * 0.15, 2.2) }}
-                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                              className="absolute z-10"
-                            >
-                              <Button
-                                variant="romantic"
-                                size="lg"
-                                className="shadow-romantic-glow font-bold pr-5 pl-5 select-none animate-heartbeat"
-                                onClick={handleYesClick}
-                              >
-                                Yes 💖
-                              </Button>
-                            </motion.div>
+                        <Button
+                          variant="romantic"
+                          className="w-full gap-2 font-bold bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 border-none shadow-none text-white text-xs py-4 rounded-xl cursor-pointer"
+                          onClick={() => router.push(`/results/${createdCode}`)}
+                        >
+                          <BarChart3 className="size-3.5" /> View Results 📊
+                        </Button>
 
-                            {/* NO Button (escapes on approach) */}
-                            <motion.div
-                              animate={{ x: noButtonPos.x, y: noButtonPos.y }}
-                              transition={{ type: "spring", stiffness: 380, damping: 22 }}
-                              onMouseEnter={handleNoHover}
-                              onClick={handleNoHover}
-                              className="absolute z-20 cursor-pointer"
-                            >
-                              <div className="relative group">
-                                {/* Speech bubble tooltip */}
-                                {noCount > 0 && (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    key={noCount}
-                                    className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black text-[10px] px-2.5 py-1.5 rounded-md whitespace-nowrap shadow-lg font-bold z-30"
-                                  >
-                                    {tooltips[(noCount - 1) % tooltips.length]}
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black dark:border-t-white" />
-                                  </motion.div>
-                                )}
-                                
-                                <Button
-                                  variant="glass"
-                                  className="border-rose-300 text-rose-600 dark:text-rose-300 font-semibold cursor-pointer"
-                                >
-                                  No 😒
-                                </Button>
-                              </div>
-                            </motion.div>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    </div>
+                        <button 
+                          onClick={() => {
+                            playSoftClick()
+                            setCreatedCode(null)
+                            setShowConfetti(false)
+                          }}
+                          className="text-[9px] font-bold text-muted-foreground/80 hover:text-primary transition-colors flex items-center justify-center gap-1 mt-1 cursor-pointer"
+                        >
+                          <RefreshCw className="size-3" /> Create New Invitation
+                        </button>
+                      </CardFooter>
+                    </Card>
                   )}
-
-                  {/* STEP 1: DATE PICKER */}
-                  {flowStep === 1 && (
-                    <DateStep
-                      selectedValue={selectedDate}
-                      onChange={setSelectedDate}
-                      onNext={() => navigateTo(2)}
-                      onBack={resetAll}
-                    />
-                  )}
-
-                  {/* STEP 2: TIME SELECTION */}
-                  {flowStep === 2 && (
-                    <TimeStep
-                      selectedValue={selectedTime}
-                      onChange={setSelectedTime}
-                      onNext={() => navigateTo(3)}
-                      onBack={() => navigateTo(1)}
-                    />
-                  )}
-
-                  {/* STEP 3: RESTAURANT SELECTION */}
-                  {flowStep === 3 && (
-                    <RestaurantStep
-                      selectedValue={selectedRestaurant}
-                      onChange={setSelectedRestaurant}
-                      onNext={() => navigateTo(4)}
-                      onBack={() => navigateTo(2)}
-                    />
-                  )}
-
-                  {/* STEP 4: FOOD SELECTION */}
-                  {flowStep === 4 && (
-                    <FoodStep
-                      restaurantName={selectedRestaurant}
-                      selectedValue={selectedFood}
-                      onChange={setSelectedFood}
-                      onNext={() => navigateTo(5)}
-                      onBack={() => navigateTo(3)}
-                    />
-                  )}
-
-                  {/* STEP 5: PERSONALITY RESULT */}
-                  {flowStep === 5 && (
-                    <PersonalityStep
-                      restaurant={selectedRestaurant}
-                      food={selectedFood}
-                      time={selectedTime}
-                      onNext={(res) => {
-                        setPersonalityResult(res)
-                        navigateTo(6)
-                      }}
-                      onBack={() => navigateTo(4)}
-                    />
-                  )}
-
-                  {/* STEP 6: FINAL SUMMARY */}
-                  {flowStep === 6 && (
-                    <SummaryStep
-                      date={selectedDate}
-                      time={selectedTime}
-                      restaurant={selectedRestaurant}
-                      food={selectedFood}
-                      personality={personalityResult}
-                      onNext={() => navigateTo(7)}
-                      onBack={() => navigateTo(5)}
-                    />
-                  )}
-
-                  {/* STEP 7: CONTACT INPUT */}
-                  {flowStep === 7 && (
-                    <ContactStep
-                      selectedValue={contactHandle}
-                      onChange={setContactHandle}
-                      onSubmit={handleProposalSubmit}
-                      onBack={() => navigateTo(6)}
-                      isSubmitting={isSubmitting}
-                      submitError={submitError}
-                    />
-                  )}
-
-                  {/* STEP 8: SUCCESS CELEBRATION */}
-                  {flowStep === 8 && (
-                    <div className="w-full flex-1 flex flex-col justify-center min-h-[440px]">
-                      <ConfettiExplosion />
-                      <Card variant="glass" className="w-full flex-1 flex flex-col justify-between py-6 text-center border-primary/30 shadow-romantic-glow">
-                        <CardHeader className="pb-0">
-                          <div className="mx-auto size-20 bg-primary/20 rounded-full flex items-center justify-center mb-4 relative">
-                            <Heart className="size-10 text-primary fill-primary animate-ping absolute opacity-40" />
-                            <Heart className="size-10 text-primary fill-primary z-10 animate-heartbeat" />
-                          </div>
-                          <CardTitle className="text-3xl font-black text-gradient-romantic tracking-wide animate-pulse">
-                            IT'S BOOKED! 🎉
-                          </CardTitle>
-                          <CardDescription className="text-xs font-semibold text-primary/80 dark:text-rose-200/80 animate-pulse">
-                            proposal locked in 💌
-                          </CardDescription>
-                        </CardHeader>
-                        
-                        <CardContent className="py-6 flex flex-col gap-3.5">
-                          <p className="text-xs font-semibold leading-relaxed px-4 text-foreground/80">
-                            Congratulations! Here is your locked Vibe Card:
-                          </p>
-                          
-                          <div className="p-4 rounded-xl bg-white/20 dark:bg-black/20 border-glass text-xs text-left flex flex-col gap-2 max-w-xs mx-auto w-full">
-                            <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
-                              <span className="text-muted-foreground">Username:</span>
-                              <span className="font-bold">{contactHandle}</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
-                              <span className="text-muted-foreground">Timeline:</span>
-                              <span className="font-bold">June {selectedDate.split("-")[2]}, 2026 🗓️</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
-                              <span className="text-muted-foreground">Time Slot:</span>
-                              <span className="font-bold">{selectedTime}</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
-                              <span className="text-muted-foreground">Venue:</span>
-                              <span className="font-bold truncate max-w-[150px]">{selectedRestaurant}</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
-                              <span className="text-muted-foreground">Palate:</span>
-                              <span className="font-bold truncate max-w-[150px]">{selectedFood}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-muted-foreground">Archetype:</span>
-                              <span className="font-bold text-primary truncate max-w-[150px]">{personalityResult}</span>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 inline-flex items-center justify-center gap-1.5 max-w-xs mx-auto">
-                            <Check className="size-3.5" /> Notification Proposal locked in!
-                          </div>
-                        </CardContent>
-
-                        <CardFooter className="flex flex-col gap-2">
-                          <div className="grid grid-cols-2 gap-2 w-full">
-                            <Button 
-                              variant="romantic" 
-                              className="gap-2 font-bold text-xs"
-                              onClick={handleSaveImage}
-                            >
-                              Save Image 📸
-                            </Button>
-                            <Button 
-                              variant="glass" 
-                              className="gap-2 font-semibold text-xs border-primary/20 text-primary"
-                              onClick={handleCopyImage}
-                            >
-                              {copyFeedback ? "Copied! 📋" : "Copy Image"}
-                            </Button>
-                          </div>
-                          
-                          <Button 
-                            variant="romantic" 
-                            className="w-full gap-2 font-bold bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 border-none shadow-none text-white text-xs"
-                            onClick={handleShareTelegram}
-                          >
-                            Share to Telegram ✈️
-                          </Button>
-
-                          <Button 
-                            variant="ghost" 
-                            className="w-full text-xs font-bold text-muted-foreground hover:text-primary gap-1 mt-1"
-                            onClick={resetAll}
-                          >
-                            <RefreshCw className="size-3" /> Restart Plan
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    </div>
-                  )}
-
                 </motion.div>
               ) : (
                 /* UI KIT SHOWCASE TAB */
@@ -1020,7 +563,7 @@ export default function Home() {
                     </p>
                   </div>
 
-                  {/* Viral Analytics Dashboard Section (Feature 1) */}
+                  {/* Viral Analytics Dashboard Section */}
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center w-full">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-primary/70 flex items-center gap-1.5">
@@ -1196,56 +739,8 @@ export default function Home() {
                           <Button variant="secondary" className="w-full">Secondary</Button>
                         </div>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-[10px] font-semibold text-muted-foreground block mb-1">Outline</span>
-                          <Button variant="outline" className="w-full">Outline</Button>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-semibold text-muted-foreground block mb-1">Ghost</span>
-                          <Button variant="ghost" className="w-full">Ghost</Button>
-                        </div>
-                      </div>
                     </div>
                   </div>
-
-                  {/* Animation Utilities */}
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-primary/70 flex items-center gap-1">
-                      <Sparkles className="size-3.5" /> Animation Utilities
-                    </h3>
-                    
-                    <div className="grid grid-cols-3 gap-2.5">
-                      <div className="p-3 bg-white/20 dark:bg-black/20 border-glass rounded-xl text-center flex flex-col items-center justify-center">
-                        <Heart className="size-6 text-primary fill-primary animate-heartbeat" />
-                        <span className="text-[9px] font-semibold mt-1">Heartbeat</span>
-                      </div>
-
-                      <div className="p-3 bg-white/20 dark:bg-black/20 border-glass rounded-xl text-center flex flex-col items-center justify-center animate-float-medium">
-                        <Sparkles className="size-6 text-amber-500 fill-amber-500" />
-                        <span className="text-[9px] font-semibold mt-1">Floating</span>
-                      </div>
-
-                      <div className="p-3 bg-white/20 dark:bg-black/20 border-glass rounded-xl text-center flex flex-col items-center justify-center">
-                        <Flame className="size-6 text-rose-500 fill-rose-500 animate-sparkle" />
-                        <span className="text-[9px] font-semibold mt-1">Sparkling</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Specs Card */}
-                  <Card variant="glass" className="bg-primary/5 border-primary/20">
-                    <CardHeader className="py-2">
-                      <CardTitle className="text-xs font-bold text-primary">System Specs</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-[11px] leading-relaxed text-foreground/80">
-                      - <strong>Framework</strong>: Next.js 16 (React 19)<br />
-                      - <strong>Styling</strong>: Tailwind CSS v4 inline themes<br />
-                      - <strong>Animations</strong>: Framer Motion + custom CSS keyframes<br />
-                      - <strong>Base</strong>: @base-ui/react primitives
-                    </CardContent>
-                  </Card>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1298,40 +793,6 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
-
-      {/* Hidden share card optimized for export */}
-      <ShareCard
-        ref={shareCardRef}
-        name={contactHandle}
-        contact={contactHandle}
-        date={selectedDate}
-        time={selectedTime}
-        restaurant={selectedRestaurant}
-        food={selectedFood}
-        personality={personalityResult}
-      />
-
-      {/* Export loading overlay */}
-      <AnimatePresence>
-        {isGeneratingCard && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md"
-          >
-            <div className="bg-white/10 border-glass p-8 rounded-3xl flex flex-col items-center justify-center max-w-[320px] text-center shadow-romantic-glow">
-              <div className="relative size-16 mb-4 flex items-center justify-center">
-                <Heart className="size-10 text-primary fill-primary animate-ping absolute opacity-45" />
-                <Heart className="size-10 text-primary fill-primary z-10 animate-heartbeat" />
-              </div>
-              <p className="text-sm font-black text-white tracking-wide uppercase animate-pulse">
-                {generatingStatus}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Floating mute/unmute button */}
       <div className="fixed bottom-6 right-6 z-40">
