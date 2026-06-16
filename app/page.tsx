@@ -396,7 +396,7 @@ export default function Home() {
         </div>
 
         {/* Content Wrapper */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 z-20 flex flex-col pb-20 scrollbar-none justify-center">
+        <div className={`flex-1 overflow-y-auto px-4 py-4 z-20 flex flex-col pb-20 scrollbar-none ${activeTab === "match" ? "justify-center" : ""}`}>
           
           {/* Playful Floating Thought Banner */}
           {activeTab === "match" && (
@@ -422,7 +422,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col mt-2 min-h-0 justify-center">
+          <div className={`flex-1 flex flex-col mt-2 min-h-0 ${activeTab === "match" ? "justify-center" : ""}`}>
             <AnimatePresence mode="wait">
               {activeTab === "match" ? (
                 <motion.div
