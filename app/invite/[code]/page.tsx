@@ -803,7 +803,12 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
                               </div>
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Timeline:</span>
-                                <span className="font-bold">June {selectedDate && selectedDate.includes("-") ? selectedDate.split("-")[2] : "12"}, 2026 🗓️</span>
+                                <span className="font-bold">
+                                  {selectedDate && selectedDate.includes("-")
+                                    ? `${selectedDate.split("-")[1] === "06" ? "June" : "July"} ${selectedDate.split("-")[2]}`
+                                    : "July 12"
+                                  }, 2026 🗓️
+                                </span>
                               </div>
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Time Slot:</span>

@@ -17,13 +17,16 @@ export const ShareCard = React.forwardRef<HTMLDivElement, ShareCardProps>(
   ({ name, contact, date, time, restaurant, food, personality }, ref) => {
     
     const getReadableDate = (rawDate: string) => {
-      if (!rawDate) return "Friday, June 12"
+      if (!rawDate) return "Friday, July 12"
       const parts = rawDate.split("-")
+      const month = parts[1]
       const day = parseInt(parts[2], 10)
       
-      const dayOfWeekIdx = (day - 1) % 7
+      const offset = month === "06" ? 0 : 2
+      const dayOfWeekIdx = (day - 1 + offset) % 7
       const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-      return `${days[dayOfWeekIdx]}, June ${day}`
+      const monthLabel = month === "06" ? "June" : "July"
+      return `${days[dayOfWeekIdx]}, ${monthLabel} ${day}`
     }
 
     return (

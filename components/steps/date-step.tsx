@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { playHoverPop } from "@/lib/audio"
+import { playHoverPop, playSoftClick } from "@/lib/audio"
 
 interface DateStepProps {
   selectedValue: string
@@ -13,23 +13,26 @@ interface DateStepProps {
 }
 
 export function DateStep({ selectedValue, onChange, onNext, onBack }: DateStepProps) {
-  // Calendar simulation for June 2026
-  // June 1, 2026 is a Monday. June has 30 days.
-  const daysInJune = 30
-  const startDayOffset = 0 // Monday index starts at 0
+  // Calendar support for June (30 days, starts Monday offset 0) and July (31 days, starts Wednesday offset 2)
+  const [currentMonth, setCurrentMonth] = useState<"june" | "july">("july")
+
+  const daysCount = currentMonth === "june" ? 30 : 31
+  const startDayOffset = currentMonth === "june" ? 0 : 2
+  const monthName = currentMonth === "june" ? "June 2026" : "July 2026"
+  const monthNum = currentMonth === "june" ? "06" : "07"
 
   const weekdays = ["M", "T", "W", "T", "F", "S", "S"]
   
   const handleDateSelect = (dayNum: number) => {
-    const formattedDate = `2026-06-${dayNum.toString().padStart(2, "0")}`
+    const formattedDate = `2026-${monthNum}-${dayNum.toString().padStart(2, "0")}`
     onChange(formattedDate)
   }
 
   const getDayDisplayClass = (dayNum: number) => {
-    const formattedDate = `2026-06-${dayNum.toString().padStart(2, "0")}`
+    const formattedDate = `2026-${monthNum}-${dayNum.toString().padStart(2, "0")}`
     const isSelected = selectedValue === formattedDate
     
-    // Friday/Saturday/Sunday highlight
+    // Friday/Saturday/Sunday weekend highlight
     const dayOfWeek = (dayNum - 1 + startDayOffset) % 7
     const isWeekend = dayOfWeek >= 4 // Fri, Sat, Sun
 
@@ -44,11 +47,16 @@ export function DateStep({ selectedValue, onChange, onNext, onBack }: DateStepPr
 
   const getSelectedDayString = () => {
     if (!selectedValue) return "Select a date on the calendar"
-    const day = parseInt(selectedValue.split("-")[2], 10)
+    const parts = selectedValue.split("-")
+    const year = parts[0]
+    const month = parts[1]
+    const day = parseInt(parts[2], 10)
     
-    const dayOfWeekIdx = (day - 1 + startDayOffset) % 7
+    const offset = month === "06" ? 0 : 2
+    const dayOfWeekIdx = (day - 1 + offset) % 7
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    return `${days[dayOfWeekIdx]}, June ${day}, 2026 💖`
+    const monthLabel = month === "06" ? "June" : "July"
+    return `${days[dayOfWeekIdx]}, ${monthLabel} ${day}, ${year} 💖`
   }
 
   return (
@@ -63,10 +71,24 @@ export function DateStep({ selectedValue, onChange, onNext, onBack }: DateStepPr
         <div className="p-4 rounded-2xl bg-white/20 dark:bg-black/20 border-glass shadow-sm flex flex-col gap-3.5">
           {/* Header */}
           <div className="flex justify-between items-center px-1">
-            <span className="font-extrabold text-sm text-foreground">June 2026</span>
+            <span className="font-extrabold text-sm text-foreground">{monthName}</span>
             <div className="flex gap-2">
-              <button disabled className="opacity-30 size-6 flex items-center justify-center rounded-md border border-foreground/10"><ChevronLeft className="size-3" /></button>
-              <button disabled className="opacity-30 size-6 flex items-center justify-center rounded-md border border-foreground/10"><ChevronRight className="size-3" /></button>
+              <button 
+                onClick={() => { playSoftClick(); setCurrentMonth("june"); }}
+                disabled={currentMonth === "june"}
+                className="size-6 flex items-center justify-center rounded-md border border-foreground/10 disabled:opacity-30 disabled:pointer-events-none hover:bg-foreground/5 cursor-pointer text-foreground"
+                aria-label="Previous Month"
+              >
+                <ChevronLeft className="size-3" />
+              </button>
+              <button 
+                onClick={() => { playSoftClick(); setCurrentMonth("july"); }}
+                disabled={currentMonth === "july"}
+                className="size-6 flex items-center justify-center rounded-md border border-foreground/10 disabled:opacity-30 disabled:pointer-events-none hover:bg-foreground/5 cursor-pointer text-foreground"
+                aria-label="Next Month"
+              >
+                <ChevronRight className="size-3" />
+              </button>
             </div>
           </div>
 
@@ -81,7 +103,12 @@ export function DateStep({ selectedValue, onChange, onNext, onBack }: DateStepPr
 
           {/* Days Grid */}
           <div className="grid grid-cols-7 gap-1.5 text-center">
-            {Array.from({ length: daysInJune }).map((_, i) => {
+            {/* Render Empty Spacer Cells for Day Offsets */}
+            {Array.from({ length: startDayOffset }).map((_, idx) => (
+              <div key={`spacer-${idx}`} className="aspect-square" />
+            ))}
+
+            {Array.from({ length: daysCount }).map((_, i) => {
               const dayNum = i + 1
               return (
                 <button

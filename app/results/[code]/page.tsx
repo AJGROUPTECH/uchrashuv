@@ -160,8 +160,11 @@ export default function ResultsPage({ params }: { params: Promise<{ code: string
 
   const getReadableDate = (rawDate: string) => {
     if (!rawDate) return ""
-    const day = parseInt(rawDate.split("-")[2], 10)
-    return `June {day}, 2026 🗓️`
+    const parts = rawDate.split("-")
+    const month = parts[1]
+    const day = parseInt(parts[2], 10)
+    const monthLabel = month === "06" ? "June" : "July"
+    return `${monthLabel} ${day}, 2026 🗓️`
   }
 
   return (
@@ -328,7 +331,10 @@ export default function ResultsPage({ params }: { params: Promise<{ code: string
                     <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                       <span className="text-muted-foreground">Timeline:</span>
                       <span className="font-extrabold text-foreground">
-                        June {responseData.selected_date ? responseData.selected_date.split("-")[2] : "12"}, 2026 🗓️
+                        {responseData.selected_date && responseData.selected_date.includes("-")
+                          ? `${responseData.selected_date.split("-")[1] === "06" ? "June" : "July"} ${responseData.selected_date.split("-")[2]}`
+                          : "July 12"
+                        }, 2026 🗓️
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
