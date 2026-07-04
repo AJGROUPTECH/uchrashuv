@@ -471,6 +471,14 @@ export default function Home() {
                           )}
                         </Button>
 
+                        <Button
+                          variant="glass"
+                          className="w-full gap-2 font-bold text-xs uppercase tracking-wider py-4 rounded-xl border-primary/20 text-primary cursor-pointer hover:bg-foreground/5 transition-colors"
+                          onClick={() => router.push("/invite/demo")}
+                        >
+                          Try Demo Flow 🎮
+                        </Button>
+
                         {createError && (
                           <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-[10px] font-bold text-destructive flex items-center gap-1.5 w-full justify-center">
                             <AlertCircle className="size-3.5" /> {createError}

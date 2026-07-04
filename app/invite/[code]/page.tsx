@@ -378,6 +378,19 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     setIsSubmitting(true)
     setSubmitError("")
     
+    if (code === "demo") {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 800))
+        playSparkle()
+        navigateTo(8)
+      } catch (err) {
+        setSubmitError("Failed to submit demo.")
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
+    
     try {
       const result = await submitInvitationResponse({
         invitation_code: code,
@@ -771,67 +784,92 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
                               <Heart className="size-10 text-primary fill-primary z-10 animate-heartbeat" />
                             </div>
                             <CardTitle className="text-3xl font-black text-gradient-romantic tracking-wide animate-pulse">
-                              IT'S BOOKED! 🎉
+                              {code === "demo" ? "DEMO COMPLETED! 🎮" : "IT'S BOOKED! 🎉"}
                             </CardTitle>
                             <CardDescription className="text-xs font-semibold text-primary/80 dark:text-rose-200/80 animate-pulse">
-                              proposal locked in 💌
+                              {code === "demo" ? "This is what your partner will see! 💌" : "proposal locked in 💌"}
                             </CardDescription>
                           </CardHeader>
                           
                           <CardContent className="py-6 flex flex-col gap-3.5">
                             <p className="text-xs font-semibold leading-relaxed px-4 text-foreground/80">
-                              Congratulations! Here is your locked Vibe Card:
+                              {code === "demo" ? "Congratulations! Here is your demo Vibe Card:" : "Congratulations! Here is your locked Vibe Card:"}
                             </p>
                             
                             <div className="p-4 rounded-xl bg-white/20 dark:bg-black/20 border-glass text-xs text-left flex flex-col gap-2 max-w-xs mx-auto w-full">
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Username:</span>
-                                <span className="font-bold">{contactHandle}</span>
+                                <span className="font-bold">{contactHandle || "@crush"}</span>
                               </div>
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Timeline:</span>
-                                <span className="font-bold">June {selectedDate.split("-")[2]}, 2026 🗓️</span>
+                                <span className="font-bold">June {selectedDate && selectedDate.includes("-") ? selectedDate.split("-")[2] : "12"}, 2026 🗓️</span>
                               </div>
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Time Slot:</span>
-                                <span className="font-bold">{selectedTime}</span>
+                                <span className="font-bold">{selectedTime || "7:00 PM"}</span>
                               </div>
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Venue:</span>
-                                <span className="font-bold truncate max-w-[150px]">{selectedRestaurant}</span>
+                                <span className="font-bold truncate max-w-[150px]">{selectedRestaurant || "ARROWS & SPARROWS"}</span>
                               </div>
                               <div className="flex justify-between items-center border-b border-foreground/5 pb-1">
                                 <span className="text-muted-foreground">Palate:</span>
-                                <span className="font-bold truncate max-w-[150px]">{selectedFood}</span>
+                                <span className="font-bold truncate max-w-[150px]">{selectedFood || "Turkish Menemen"}</span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Archetype:</span>
-                                <span className="font-bold text-primary truncate max-w-[150px]">{personalityResult}</span>
+                                <span className="font-bold text-primary truncate max-w-[150px]">{personalityResult || "Fine Dining Romanticist 🌹"}</span>
                               </div>
                             </div>
-
-                            <div className="mt-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 inline-flex items-center justify-center gap-1.5 max-w-xs mx-auto">
-                              <Check className="size-3.5" /> Proposal locked in!
-                            </div>
+ 
+                            {code === "demo" ? (
+                              <div className="mt-3 p-3 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary inline-flex items-center justify-center gap-1.5 max-w-xs mx-auto">
+                                <Sparkles className="size-3.5" /> Try creating your own invite now!
+                              </div>
+                            ) : (
+                              <div className="mt-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 inline-flex items-center justify-center gap-1.5 max-w-xs mx-auto">
+                                <Check className="size-3.5" /> Proposal locked in!
+                              </div>
+                            )}
                           </CardContent>
-
+ 
                           <CardFooter className="flex flex-col gap-2">
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                              <Button 
-                                variant="romantic" 
-                                className="gap-2 font-bold text-xs cursor-pointer"
-                                onClick={handleSaveImage}
-                              >
-                                Save Image 📸
-                              </Button>
-                              <Button
-                                variant="glass"
-                                className="gap-2 font-bold text-xs text-primary border-primary/20 cursor-pointer"
-                                onClick={() => router.push(`/results/${code}`)}
-                              >
-                                View Summary 📊
-                              </Button>
-                            </div>
+                            {code === "demo" ? (
+                              <div className="flex flex-col gap-2 w-full">
+                                <Button 
+                                  variant="romantic" 
+                                  className="w-full gap-2 font-black text-xs uppercase tracking-wider py-4 rounded-xl shadow-romantic-glow cursor-pointer"
+                                  onClick={() => router.push("/")}
+                                >
+                                  Create My Own Invitation 💌
+                                </Button>
+                                <Button 
+                                  variant="glass" 
+                                  className="w-full gap-2 font-semibold text-xs border-primary/20 text-primary py-3 rounded-xl hover:bg-foreground/5 transition-colors cursor-pointer"
+                                  onClick={handleSaveImage}
+                                >
+                                  Save Demo Vibe Card 📸
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2 w-full">
+                                <Button 
+                                  variant="romantic" 
+                                  className="gap-2 font-bold text-xs cursor-pointer"
+                                  onClick={handleSaveImage}
+                                >
+                                  Save Image 📸
+                                </Button>
+                                <Button
+                                  variant="glass"
+                                  className="gap-2 font-bold text-xs text-primary border-primary/20 cursor-pointer"
+                                  onClick={() => router.push(`/results/${code}`)}
+                                >
+                                  View Summary 📊
+                                </Button>
+                              </div>
+                            )}
                           </CardFooter>
                         </Card>
                       </div>

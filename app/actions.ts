@@ -327,6 +327,9 @@ export async function submitInvitationResponse(data: InvitationResponseData) {
 
 export async function getInvitationResponse(code: string) {
   if (!code) return { success: false, error: "Missing invitation code" }
+  if (code === "demo") {
+    return { success: true, exists: false, message: "pending" }
+  }
 
   try {
     const { data: responseData, error: responseError } = await supabase
